@@ -10,12 +10,26 @@ using System.Windows.Forms;
 
 namespace EnvironmentDataCollector
 {
-    public partial class Form1 : Form
+    public partial class EnvDataForm : System.Windows.Forms.Form
     {
-        public Form1()
+        public EnvDataForm()
         {
             InitializeComponent();
         }
 
+        private void FileBtn_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void SearchBtn_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void ExportBtn_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
