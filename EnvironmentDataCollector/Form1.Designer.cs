@@ -37,10 +37,10 @@ namespace EnvironmentDataCollector
             this.label3 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
             this.ExportBtn = new System.Windows.Forms.Button();
-            this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            this.DataGrid = new System.Windows.Forms.DataGridView();
             this.label5 = new System.Windows.Forms.Label();
             this.SearchBtn = new System.Windows.Forms.Button();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.DataGrid)).BeginInit();
             this.SuspendLayout();
             // 
             // label1
@@ -117,14 +117,18 @@ namespace EnvironmentDataCollector
             this.ExportBtn.UseVisualStyleBackColor = true;
             this.ExportBtn.Click += new System.EventHandler(this.ExportBtn_Click);
             // 
-            // dataGridView1
+            // DataGrid
             // 
-            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridView1.Location = new System.Drawing.Point(12, 149);
-            this.dataGridView1.Name = "dataGridView1";
-            this.dataGridView1.RowTemplate.Height = 25;
-            this.dataGridView1.Size = new System.Drawing.Size(1362, 634);
-            this.dataGridView1.TabIndex = 8;
+            this.DataGrid.AllowUserToAddRows = false;
+            this.DataGrid.AllowUserToDeleteRows = false;
+            this.DataGrid.AllowUserToOrderColumns = true;
+            this.DataGrid.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.DataGrid.Location = new System.Drawing.Point(12, 149);
+            this.DataGrid.Name = "DataGrid";
+            this.DataGrid.ReadOnly = true;
+            this.DataGrid.RowTemplate.Height = 25;
+            this.DataGrid.Size = new System.Drawing.Size(1362, 634);
+            this.DataGrid.TabIndex = 8;
             // 
             // label5
             // 
@@ -153,7 +157,7 @@ namespace EnvironmentDataCollector
             this.ClientSize = new System.Drawing.Size(1386, 795);
             this.Controls.Add(this.SearchBtn);
             this.Controls.Add(this.label5);
-            this.Controls.Add(this.dataGridView1);
+            this.Controls.Add(this.DataGrid);
             this.Controls.Add(this.ExportBtn);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.label3);
@@ -165,7 +169,7 @@ namespace EnvironmentDataCollector
             this.Font = new System.Drawing.Font("Segoe UI", 17F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
             this.Name = "EnvDataForm";
             this.Text = "Raccolta Dati Ambiente";
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.DataGrid)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -181,7 +185,7 @@ namespace EnvironmentDataCollector
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button ExportBtn;
-        private System.Windows.Forms.DataGridView dataGridView1;
+        private System.Windows.Forms.DataGridView DataGrid;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Button SearchBtn;
     }
