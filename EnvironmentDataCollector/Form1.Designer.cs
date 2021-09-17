@@ -40,6 +40,7 @@ namespace EnvironmentDataCollector
             this.DataGrid = new System.Windows.Forms.DataGridView();
             this.label5 = new System.Windows.Forms.Label();
             this.SearchBtn = new System.Windows.Forms.Button();
+            this.FileDialog = new System.Windows.Forms.OpenFileDialog();
             ((System.ComponentModel.ISupportInitialize)(this.DataGrid)).BeginInit();
             this.SuspendLayout();
             // 
@@ -150,6 +151,11 @@ namespace EnvironmentDataCollector
             this.SearchBtn.UseVisualStyleBackColor = true;
             this.SearchBtn.Click += new System.EventHandler(this.SearchBtn_Click);
             // 
+            // FileDialog
+            // 
+            this.FileDialog.Title = "Carica un file";
+            this.FileDialog.FileOk += new System.ComponentModel.CancelEventHandler(this.openFileDialog1_FileOk);
+            // 
             // EnvDataForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 23F);
@@ -188,6 +194,7 @@ namespace EnvironmentDataCollector
         private System.Windows.Forms.DataGridView DataGrid;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Button SearchBtn;
+        private System.Windows.Forms.OpenFileDialog FileDialog;
     }
 }
 
