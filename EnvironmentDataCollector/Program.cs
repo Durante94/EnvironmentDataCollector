@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ namespace EnvironmentDataCollector
     {
         private static readonly MongoClient client;
         private static readonly IMongoDatabase db;
-        public static readonly string collName = "EnvironmentData";
+        private static readonly string collName = "EnvironmentData";
 
         static Program()
         {
@@ -35,6 +36,18 @@ namespace EnvironmentDataCollector
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new EnvDataForm());
+        }
+
+        internal static void SaveData(DataDb document)
+        {
+            if (db.GetCollection<DataDb>(collName).Find(x => x.DataRilevazione == document.DataRilevazione).CountDocuments() > 0) return;
+
+            db.GetCollection<DataDb>(collName).InsertOne(document);
+        }
+
+        internal static List<DataDb> GetData(BsonDocument filter)
+        {
+            return db.GetCollection<DataDb>(collName).Find(filter).ToList();
         }
     }
 }

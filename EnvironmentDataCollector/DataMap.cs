@@ -78,18 +78,24 @@ namespace EnvironmentDataCollector
             for (int i = 0; i < header.Length; i++)
             {
                 PropertyInfo current = rilevazione.GetType().GetProperty(header[i]);
+                string value = excelRow.GetCell(i)?.ToString() ?? "";
 
+                if (string.IsNullOrEmpty(value) || string.IsNullOrWhiteSpace(value))
+                {
+                    i--;
+                    continue;
+                }
                 if (current == null) continue;
 
                 if (current.GetCustomAttribute<FloatAttribute>() != null)
                 {
-                    if (double.TryParse(excelRow.GetCell(i)?.ToString() ?? "", out double num))
+                    if (double.TryParse(value, out double num))
                         current.SetValue(rilevazione, num);
                     else
                         current.SetValue(rilevazione, -200d);
                 }
                 else
-                    current.SetValue(rilevazione, excelRow.GetCell(i)?.ToString() ?? "");
+                    current.SetValue(rilevazione, value);
             }
 
             return rilevazione;
@@ -176,7 +182,7 @@ namespace EnvironmentDataCollector
             Position = other.Position;
             DataRilevazione = other.DataRilevazione;
             Umidita = other.MetaField.Ch1_Value.ToString(CultureInfo.GetCultureInfo("it-IT")) + other.Ch1_Unit;
-            Temperatura = other.MetaField.Ch2_Value + other.Ch2_Unit;
+            Temperatura = other.MetaField.Ch2_Value.ToString(CultureInfo.GetCultureInfo("it-IT")) + other.Ch2_Unit;
         }
     }
 
