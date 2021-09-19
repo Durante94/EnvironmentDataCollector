@@ -127,7 +127,6 @@ namespace EnvironmentDataCollector
             this.DataGrid.Location = new System.Drawing.Point(12, 149);
             this.DataGrid.Name = "DataGrid";
             this.DataGrid.ReadOnly = true;
-            this.DataGrid.RowTemplate.Height = 25;
             this.DataGrid.Size = new System.Drawing.Size(1362, 634);
             this.DataGrid.TabIndex = 8;
             // 
@@ -160,7 +159,7 @@ namespace EnvironmentDataCollector
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 23F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1386, 795);
+            this.ClientSize = new System.Drawing.Size(1370, 749);
             this.Controls.Add(this.SearchBtn);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.DataGrid);

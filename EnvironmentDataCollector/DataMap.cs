@@ -3,6 +3,7 @@ using MongoDB.Driver;
 using NPOI.SS.UserModel;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
@@ -11,6 +12,7 @@ namespace EnvironmentDataCollector
 {
     internal class BaseData
     {
+        [Integer]
         public long Position { get; protected set; }
 
         [BsonTSField]
@@ -32,7 +34,7 @@ namespace EnvironmentDataCollector
         {
             set
             {
-                if (DateTime.TryParseExact(value, "dd/MM/yyyy", CultureInfo.GetCultureInfo("it-IT"), DateTimeStyles.None, out DateTime temp))
+                if (DateTime.TryParseExact(value, "yyyy/MM/dd", CultureInfo.GetCultureInfo("it-IT"), DateTimeStyles.None, out DateTime temp))
                     DataRilevazione = temp;
             }
         }
@@ -42,8 +44,16 @@ namespace EnvironmentDataCollector
         {
             set
             {
-                if (TimeSpan.TryParseExact(value, "hh:mm:ss", CultureInfo.GetCultureInfo("it-IT"), TimeSpanStyles.None, out TimeSpan temp))
-                    DataRilevazione.Add(temp);
+                string[] splitted = value.Split(':');
+                if (splitted.Length > 0)
+                {
+                    if (int.TryParse(splitted[0], out int num))
+                        DataRilevazione = DataRilevazione.AddHours(num);
+                    if (splitted.Length > 1 && int.TryParse(splitted[1], out num))
+                        DataRilevazione = DataRilevazione.AddMinutes(num);
+                    if (splitted.Length > 2 && int.TryParse(splitted[2], out num))
+                        DataRilevazione = DataRilevazione.AddSeconds(num);
+                }
             }
         }
 
@@ -55,7 +65,7 @@ namespace EnvironmentDataCollector
         [Float, BsonIndex]
         public double Ch2_Value { get; private set; }
 
-        public string Ch2_Unit
+        public string Ch2_unit
         {
             get
             {
@@ -77,7 +87,7 @@ namespace EnvironmentDataCollector
 
             for (int i = 0; i < header.Length; i++)
             {
-                PropertyInfo current = rilevazione.GetType().GetProperty(header[i]);
+                PropertyInfo current = rilevazione.GetType().GetProperty(header[i], BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
                 string value = excelRow.GetCell(i)?.ToString() ?? "";
 
                 if (string.IsNullOrEmpty(value) || string.IsNullOrWhiteSpace(value))
@@ -85,6 +95,8 @@ namespace EnvironmentDataCollector
                     i--;
                     continue;
                 }
+                else
+                    value = value.Trim();
                 if (current == null) continue;
 
                 if (current.GetCustomAttribute<FloatAttribute>() != null)
@@ -93,6 +105,13 @@ namespace EnvironmentDataCollector
                         current.SetValue(rilevazione, num);
                     else
                         current.SetValue(rilevazione, -200d);
+                }
+                else if (current.GetCustomAttribute<IntegerAttribute>() != null)
+                {
+                    if (int.TryParse(value, out int num))
+                        current.SetValue(rilevazione, num);
+                    else
+                        current.SetValue(rilevazione, 0);
                 }
                 else
                     current.SetValue(rilevazione, value);
@@ -132,7 +151,7 @@ namespace EnvironmentDataCollector
             MetaField.Ch1_Value = other.Ch1_Value;
             MetaField.Ch2_Value = other.Ch2_Value;
             Ch1_Unit = other.Ch1_Unit;
-            Ch2_Unit = other.Ch2_Unit;
+            Ch2_Unit = other.Ch2_unit;
         }
 
         internal static string GetTimeSeriesField()
@@ -184,6 +203,27 @@ namespace EnvironmentDataCollector
             Umidita = other.MetaField.Ch1_Value.ToString(CultureInfo.GetCultureInfo("it-IT")) + other.Ch1_Unit;
             Temperatura = other.MetaField.Ch2_Value.ToString(CultureInfo.GetCultureInfo("it-IT")) + other.Ch2_Unit;
         }
+
+        internal static DataTable CreateDataTable()
+        {
+            DataTable dt = new DataTable();
+
+            foreach (PropertyInfo property in typeof(DataDisplay).GetProperties())
+            {
+                dt.Columns.Add(property.Name, property.PropertyType);
+            }
+
+            return dt;
+        }
+
+        internal DataRow FillDataTable(DataRow populate)
+        {
+            foreach (PropertyInfo property in GetType().GetProperties())
+            {
+                populate[property.Name] = property.GetValue(this);
+            }
+            return populate;
+        }
     }
 
     internal class BsonTSFieldAttribute : Attribute
@@ -195,6 +235,10 @@ namespace EnvironmentDataCollector
     }
 
     internal class FloatAttribute : Attribute
+    {
+    }
+
+    internal class IntegerAttribute : Attribute
     {
     }
 }

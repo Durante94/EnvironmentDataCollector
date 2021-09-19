@@ -2,6 +2,7 @@
 using MongoDB.Driver;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -22,6 +23,7 @@ namespace EnvironmentDataCollector
         {
             InitializeComponent();
             toDispaly = null;
+            FileDialog.Filter = "Excel File (*.xls)|*.xls|Excel File (*.xlsx)|*.xlsx|CSV File (*.csv)|*.csv";
         }
 
         //MOSTRO DIALOG PER CARICARE IL FILE EXCEL
@@ -64,7 +66,15 @@ namespace EnvironmentDataCollector
         {
             if (toDispaly == null)
                 toDispaly = Program.GetData(GetFilters).ConvertAll(doc => doc.ConvertToDispaly());
-            DataGrid.DataSource = toDispaly;
+
+            DataTable dataTable = DataDisplay.CreateDataTable();
+            foreach (DataDisplay disp in toDispaly)
+            {
+                DataRow row = dataTable.NewRow();
+                dataTable.Rows.Add(disp.FillDataTable(row));
+            }
+
+            DataGrid.DataSource = dataTable;
             DataGrid.Refresh();
         }
 
@@ -80,9 +90,10 @@ namespace EnvironmentDataCollector
         //UPDATE DB DA FILE CARICATO
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
         {
+            FileStream excelFile = new FileStream(FileDialog.FileName, FileMode.Open, FileAccess.Read);
             //TASK PER NON BLOCCARE IL PROGRAMMA
-            HSSFWorkbook hssfwb = new HSSFWorkbook();
-            ISheet sheet = hssfwb.GetSheetAt(0);
+            XSSFWorkbook xssfwb = new XSSFWorkbook(excelFile);
+            ISheet sheet = xssfwb.GetSheetAt(0);
 
             IRow row = sheet.GetRow(sheet.FirstRowNum);
             string[] header = new string[row.PhysicalNumberOfCells];
