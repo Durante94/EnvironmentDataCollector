@@ -12,10 +12,10 @@ namespace EnvironmentDataCollector
 {
     internal class BaseData
     {
-        [Integer]
+        [Integer, Order(3)]
         public long Position { get; protected set; }
 
-        [BsonTSField]
+        [BsonTSField, Order(0)]
         public DateTime DataRilevazione { get; protected set; }
 
         protected BaseData()
@@ -230,8 +230,10 @@ namespace EnvironmentDataCollector
 
     internal class DataDisplay : BaseData
     {
+        [Order(1)]
         public string Temperatura { get; private set; }
 
+        [Order(2)]
         public string Umidita { get; private set; }
 
         internal DataDisplay(DataDb other) : base()
@@ -245,11 +247,15 @@ namespace EnvironmentDataCollector
         internal static DataTable CreateDataTable()
         {
             DataTable dt = new DataTable();
+            PropertyInfo[] properties = typeof(DataDisplay).GetProperties();
+            DataColumn[] columns = new DataColumn[properties.Length];
 
-            foreach (PropertyInfo property in typeof(DataDisplay).GetProperties())
+            foreach (PropertyInfo property in properties)
             {
-                dt.Columns.Add(property.Name, property.PropertyType);
+                OrderAttribute order = property.GetCustomAttribute<OrderAttribute>();
+                columns[order.Value] = new DataColumn(property.Name, property.PropertyType);
             }
+            dt.Columns.AddRange(columns);
 
             return dt;
         }
@@ -262,6 +268,15 @@ namespace EnvironmentDataCollector
             }
             return populate;
         }
+    }
+
+    internal class OrderAttribute : Attribute
+    {
+        public OrderAttribute(byte value)
+        {
+            Value = value;
+        }
+        public byte Value { get; private set; }
     }
 
     internal class BsonTSFieldAttribute : Attribute

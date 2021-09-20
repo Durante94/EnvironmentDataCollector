@@ -1,6 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
 using NPOI.HSSF.UserModel;
+using NPOI.POIFS.FileSystem;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using System;
@@ -29,67 +30,9 @@ namespace EnvironmentDataCollector
         //MOSTRO DIALOG PER CARICARE IL FILE EXCEL
         private void FileBtn_Click(object sender, EventArgs e)
         {
-            FileDialog.ShowDialog();
-        }
+            if (FileDialog.ShowDialog() != DialogResult.OK) return;
 
-        //FUNZIONE PER REPERIRE I FILTRI
-        private BsonDocument GetFilters
-        {
-            get
-            {
-                BsonDocument filter = new BsonDocument(true);
-
-                if (FromPiker.Checked)
-                    filter.Add(DataDb.GetTimeSeriesField(), new BsonDocument("$gte", FromPiker.Value));
-
-                if (ToPicker.Checked)
-                    filter.Add(DataDb.GetTimeSeriesField(), new BsonDocument("$lte", ToPicker.Value));
-
-                if (false)//filtro $gte umidità
-                    filter.Add(DataDb.metaFieldName + "Ch1_Value", new BsonDocument("$gte", double.MinValue));
-
-                if (false)//filtro $lte umidità
-                    filter.Add(DataDb.metaFieldName + "Ch1_Value", new BsonDocument("$lte", double.MaxValue));
-
-                if (false)//filtro $gte temperatura
-                    filter.Add(DataDb.metaFieldName + "Ch2_Value", new BsonDocument("$gte", double.MinValue));
-
-                if (false)//filtro $lte temperatura
-                    filter.Add(DataDb.metaFieldName + "Ch2_Value", new BsonDocument("$lte", double.MaxValue));
-
-                return filter;
-            }
-        }
-
-        //RICERCA DATI PER FILTRO
-        private void SearchBtn_Click(object sender, EventArgs e)
-        {
-            if (toDispaly == null)
-                toDispaly = Program.GetData(GetFilters).ConvertAll(doc => doc.ConvertToDispaly());
-
-            DataTable dataTable = DataDisplay.CreateDataTable();
-            foreach (DataDisplay disp in toDispaly)
-            {
-                DataRow row = dataTable.NewRow();
-                dataTable.Rows.Add(disp.FillDataTable(row));
-            }
-
-            DataGrid.DataSource = dataTable;
-            DataGrid.Refresh();
-        }
-
-        //ESPORTA DATI RICERCA
-        private void ExportBtn_Click(object sender, EventArgs e)
-        {
-            if (toDispaly == null)
-                toDispaly = Program.GetData(GetFilters).ConvertAll(doc => doc.ConvertToDispaly());
-
-            //Salva Excel
-        }
-
-        //UPDATE DB DA FILE CARICATO
-        private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
-        {
+            //UPDATE DB DA FILE CARICATO
             FileStream excelFile = new FileStream(FileDialog.FileName, FileMode.Open, FileAccess.Read)
             {
                 Position = 0
@@ -112,13 +55,106 @@ namespace EnvironmentDataCollector
             }
             else if (string.Compare("xls", extension, true) == 0)
             {
-                HSSFWorkbook hssfwb = new HSSFWorkbook(excelFile);
-                ExcelFileHandler(hssfwb.GetSheetAt(0));
+                HSSFWorkbook hssfwb = new HSSFWorkbook();
+                try
+                {
+                    hssfwb = new HSSFWorkbook(excelFile);
+                    ExcelFileHandler(hssfwb.GetSheetAt(0));
+                }
+                catch (NotOLE2FileException)
+                {
+                    CSVFileHandler(new StreamReader(FileDialog.FileName));
+                }
             }
             else if (string.Compare("csv", extension, true) == 0)
                 CSVFileHandler(new StreamReader(excelFile));
             else
                 MessageBox.Show("Tipo file non riconosciuto!", "Attenzione", MessageBoxButtons.OK);
+
+        }
+
+        //FUNZIONE PER REPERIRE I FILTRI
+        private BsonDocument GetFilters
+        {
+            get
+            {
+                BsonDocument filter = new BsonDocument(true);
+
+                if (FromPiker.Checked)
+                    filter.Add(DataDb.GetTimeSeriesField(), new BsonDocument("$gte", FromPiker.Value));
+
+                if (ToPicker.Checked)
+                    filter.Add(DataDb.GetTimeSeriesField(), new BsonDocument("$lte", ToPicker.Value));
+
+                if (InputMinHum.Validate())//filtro $gte umidità
+                    filter.Add(DataDb.metaFieldName + ".Ch1_Value", new BsonDocument("$gte", InputMinHum.Value));
+
+                if (InputMaxHum.Validate() && InputMaxHum.Value > InputMinHum.Value)//filtro $lte umidità
+                    filter.Add(DataDb.metaFieldName + ".Ch1_Value", new BsonDocument("$lte", InputMaxHum.Value));
+
+                if (InputMinTemp.Validate())//filtro $gte temperatura
+                    filter.Add(DataDb.metaFieldName + ".Ch2_Value", new BsonDocument("$gte", InputMinTemp.Value));
+
+                if (InputMaxTemp.Validate() && InputMaxTemp.Value > InputMinTemp.Value)//filtro $lte temperatura
+                    filter.Add(DataDb.metaFieldName + ".Ch2_Value", new BsonDocument("$lte", InputMaxTemp.Value));
+
+                return filter;
+            }
+        }
+
+        private void CleanFilters(object sender, EventArgs e)
+        {
+            toDispaly = null;
+        }
+
+        //RICERCA DATI PER FILTRO
+        private void SearchBtn_Click(object sender, EventArgs e)
+        {
+            if (toDispaly == null)
+                toDispaly = Program.GetData(GetFilters).ConvertAll(doc => doc.ConvertToDispaly());
+
+            DataTable dataTable = DataDisplay.CreateDataTable();
+            foreach (DataDisplay disp in toDispaly)
+            {
+                DataRow row = dataTable.NewRow();
+                dataTable.Rows.Add(disp.FillDataTable(row));
+            }
+
+            DataGrid.DataSource = dataTable;
+            DataGrid.Refresh();
+        }
+
+        //ESPORTA DATI RICERCA
+        private void ExportBtn_Click(object sender, EventArgs e)
+        {
+            SearchBtn_Click(sender, e);
+
+            //chiedere posizione salvataggio
+            XSSFWorkbook xssfwb = new XSSFWorkbook();
+            ISheet sheet = xssfwb.CreateSheet("Rilevazioni");
+
+            xssfwb.Add(sheet);
+
+            int i = 0, j = 0;
+            IRow row = sheet.CreateRow(i++);
+            DataTable fromDataGrid = (DataTable)DataGrid.DataSource;
+
+            foreach (DataColumn column in fromDataGrid.Columns)
+            {
+                ICell cell = row.CreateCell(j++);
+                cell.SetCellValue(column.ColumnName);
+            }
+
+            foreach (DataRow item in fromDataGrid.Rows)
+            {
+                j = 0;
+                row = sheet.CreateRow(i++);
+                foreach (DataColumn column in fromDataGrid.Columns)
+                {
+                    ICell cell = row.CreateCell(j++);
+                    cell.SetCellValue(item[column].ToString() ?? "");
+                }
+            }
         }
 
         private void ExcelFileHandler(ISheet sheet)
@@ -144,12 +180,12 @@ namespace EnvironmentDataCollector
         private void CSVFileHandler(StreamReader sr)
         {
             string csvLine = sr.ReadLine();
-            string[] header = csvLine.Split(';');
+            string[] header = csvLine.Split('\t');
 
             while (!sr.EndOfStream)
             {
                 csvLine = sr.ReadLine();
-                DataMap parsed = DataMap.CreateFromCSVRow(header, csvLine.Split(';'));
+                DataMap parsed = DataMap.CreateFromCSVRow(header, csvLine.Split('\t'));
                 Program.SaveData(parsed.ConvertForDB());
             }
         }

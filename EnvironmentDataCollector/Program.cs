@@ -47,7 +47,7 @@ namespace EnvironmentDataCollector
 
         internal static List<DataDb> GetData(BsonDocument filter)
         {
-            return db.GetCollection<DataDb>(collName).Find(filter).ToList();
+            return db.GetCollection<DataDb>(collName).Find(filter).Sort(Builders<DataDb>.Sort.Ascending(x => x.DataRilevazione)).ToList();
         }
     }
 }
