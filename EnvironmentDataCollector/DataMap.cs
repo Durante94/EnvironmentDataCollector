@@ -120,6 +120,44 @@ namespace EnvironmentDataCollector
             return rilevazione;
         }
 
+        public static DataMap CreateFromCSVRow(string[] header, string[] csvRow)
+        {
+            DataMap rilevazione = new DataMap();
+
+            for (int i = 0; i < header.Length; i++)
+            {
+                PropertyInfo current = rilevazione.GetType().GetProperty(header[i], BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+
+                if (string.IsNullOrEmpty(csvRow[i]) || string.IsNullOrWhiteSpace(csvRow[i]))
+                {
+                    i--;
+                    continue;
+                }
+                else
+                    csvRow[i] = csvRow[i].Trim();
+                if (current == null) continue;
+
+                if (current.GetCustomAttribute<FloatAttribute>() != null)
+                {
+                    if (double.TryParse(csvRow[i], out double num))
+                        current.SetValue(rilevazione, num);
+                    else
+                        current.SetValue(rilevazione, -200d);
+                }
+                else if (current.GetCustomAttribute<IntegerAttribute>() != null)
+                {
+                    if (int.TryParse(csvRow[i], out int num))
+                        current.SetValue(rilevazione, num);
+                    else
+                        current.SetValue(rilevazione, 0);
+                }
+                else
+                    current.SetValue(rilevazione, csvRow[i]);
+            }
+
+            return rilevazione;
+        }
+
         internal DataDb ConvertForDB()
         {
             return new DataDb(this);

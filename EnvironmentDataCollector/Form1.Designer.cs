@@ -196,4 +196,3 @@ namespace EnvironmentDataCollector
         private System.Windows.Forms.OpenFileDialog FileDialog;
     }
 }
-

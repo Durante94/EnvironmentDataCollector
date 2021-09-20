@@ -90,11 +90,39 @@ namespace EnvironmentDataCollector
         //UPDATE DB DA FILE CARICATO
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
         {
-            FileStream excelFile = new FileStream(FileDialog.FileName, FileMode.Open, FileAccess.Read);
+            FileStream excelFile = new FileStream(FileDialog.FileName, FileMode.Open, FileAccess.Read)
+            {
+                Position = 0
+            };
             //TASK PER NON BLOCCARE IL PROGRAMMA
-            XSSFWorkbook xssfwb = new XSSFWorkbook(excelFile);
-            ISheet sheet = xssfwb.GetSheetAt(0);
 
+            int pos = FileDialog.FileName.LastIndexOf('.');
+            if (pos < 0)
+            {
+                MessageBox.Show("File non leggibile!", "Attenzione", MessageBoxButtons.OK);
+                return;
+            }
+
+            string extension = FileDialog.FileName[(pos + 1)..];
+
+            if (string.Compare("xlsx", extension, true) == 0)
+            {
+                XSSFWorkbook xssfwb = new XSSFWorkbook(excelFile);
+                ExcelFileHandler(xssfwb.GetSheetAt(0));
+            }
+            else if (string.Compare("xls", extension, true) == 0)
+            {
+                HSSFWorkbook hssfwb = new HSSFWorkbook(excelFile);
+                ExcelFileHandler(hssfwb.GetSheetAt(0));
+            }
+            else if (string.Compare("csv", extension, true) == 0)
+                CSVFileHandler(new StreamReader(excelFile));
+            else
+                MessageBox.Show("Tipo file non riconosciuto!", "Attenzione", MessageBoxButtons.OK);
+        }
+
+        private void ExcelFileHandler(ISheet sheet)
+        {
             IRow row = sheet.GetRow(sheet.FirstRowNum);
             string[] header = new string[row.PhysicalNumberOfCells];
 
@@ -109,6 +137,19 @@ namespace EnvironmentDataCollector
             for (int i = sheet.FirstRowNum + 1; i <= sheet.LastRowNum; i++)
             {
                 DataMap parsed = DataMap.CreateFromExcelRow(header, sheet.GetRow(i));
+                Program.SaveData(parsed.ConvertForDB());
+            }
+        }
+
+        private void CSVFileHandler(StreamReader sr)
+        {
+            string csvLine = sr.ReadLine();
+            string[] header = csvLine.Split(';');
+
+            while (!sr.EndOfStream)
+            {
+                csvLine = sr.ReadLine();
+                DataMap parsed = DataMap.CreateFromCSVRow(header, csvLine.Split(';'));
                 Program.SaveData(parsed.ConvertForDB());
             }
         }
