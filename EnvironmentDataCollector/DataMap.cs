@@ -12,10 +12,10 @@ namespace EnvironmentDataCollector
 {
     internal class BaseData
     {
-        [Integer, Order(3)]
+        [Integer]
         public long Position { get; protected set; }
 
-        [BsonTSField, Order(0)]
+        [BsonTSField]
         public DateTime DataRilevazione { get; protected set; }
 
         protected BaseData()
@@ -213,9 +213,28 @@ namespace EnvironmentDataCollector
             return index;
         }
 
-        internal DataDisplay ConvertToDispaly()
+        internal static DataTable CreateDataTable()
         {
-            return new DataDisplay(this);
+            DataTable dt = new DataTable();
+            dt.Columns.AddRange(new DataColumn[]
+            {
+                new DataColumn("Data", typeof(DateTime)),
+                new DataColumn("Temperatura", typeof(string)),
+                new DataColumn("Umidità", typeof(string)),
+                new DataColumn("Position", typeof(long))
+            });
+
+            return dt;
+        }
+
+        internal DataRow FillDataTable(DataRow populate)
+        {
+            populate["Data"] = DataRilevazione;
+            populate["Temperatura"] = MetaField.Ch2_Value.ToString(CultureInfo.GetCultureInfo("it-IT")) + Ch2_Unit;
+            populate["Umidità"] = MetaField.Ch1_Value.ToString(CultureInfo.GetCultureInfo("it-IT")) + Ch1_Unit;
+            populate["Position"] = Position;
+
+            return populate;
         }
     }
 
@@ -226,57 +245,6 @@ namespace EnvironmentDataCollector
 
         [Float, BsonIndex]
         public double Ch2_Value { get; set; }
-    }
-
-    internal class DataDisplay : BaseData
-    {
-        [Order(1)]
-        public string Temperatura { get; private set; }
-
-        [Order(2)]
-        public string Umidita { get; private set; }
-
-        internal DataDisplay(DataDb other) : base()
-        {
-            Position = other.Position;
-            DataRilevazione = other.DataRilevazione;
-            Umidita = other.MetaField.Ch1_Value.ToString(CultureInfo.GetCultureInfo("it-IT")) + other.Ch1_Unit;
-            Temperatura = other.MetaField.Ch2_Value.ToString(CultureInfo.GetCultureInfo("it-IT")) + other.Ch2_Unit;
-        }
-
-        internal static DataTable CreateDataTable()
-        {
-            DataTable dt = new DataTable();
-            PropertyInfo[] properties = typeof(DataDisplay).GetProperties();
-            DataColumn[] columns = new DataColumn[properties.Length];
-
-            foreach (PropertyInfo property in properties)
-            {
-                OrderAttribute order = property.GetCustomAttribute<OrderAttribute>();
-                columns[order.Value] = new DataColumn(property.Name, property.PropertyType);
-            }
-            dt.Columns.AddRange(columns);
-
-            return dt;
-        }
-
-        internal DataRow FillDataTable(DataRow populate)
-        {
-            foreach (PropertyInfo property in GetType().GetProperties())
-            {
-                populate[property.Name] = property.GetValue(this);
-            }
-            return populate;
-        }
-    }
-
-    internal class OrderAttribute : Attribute
-    {
-        public OrderAttribute(byte value)
-        {
-            Value = value;
-        }
-        public byte Value { get; private set; }
     }
 
     internal class BsonTSFieldAttribute : Attribute
