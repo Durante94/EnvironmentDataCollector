@@ -129,7 +129,7 @@ namespace EnvironmentDataCollector
                     filter.Add(DataDb.GetTimeSeriesField(), new BsonDocument("$gte", FromPiker.Value));
 
                 if (ToPicker.Checked)
-                    filter.Add(DataDb.GetTimeSeriesField(), new BsonDocument("$lte", ToPicker.Value));
+                    filter.Add(DataDb.GetTimeSeriesField(), new BsonDocument("$lte", ToPicker.Value.AddDays(1)));
 
                 if (InputMinHum.Validate())//filtro $gte umidità
                     filter.Add(DataDb.metaFieldName + ".Ch1_Value", new BsonDocument("$gte", InputMinHum.Value));
@@ -152,18 +152,23 @@ namespace EnvironmentDataCollector
             toDispaly = null;
         }
 
-        private void Search()
+        private Task Search()
         {
-            if (toDispaly == null)
-                toDispaly = Program.GetData(GetFilters);
+            return Task.Run(() =>
+            {
+                if (toDispaly == null)
+                    toDispaly = Program.GetData(GetFilters);
+            });
         }
 
         //RICERCA DATI PER FILTRO
         private void SearchBtn_Click(object sender, EventArgs e)
         {
-            Search();
+            Task t = Search();
 
             DataTable dataTable = DataDb.CreateDataTable();
+
+            t.Wait();
             foreach (DataDb disp in toDispaly)
             {
                 DataRow row = dataTable.NewRow();
@@ -177,32 +182,27 @@ namespace EnvironmentDataCollector
         //ESPORTA DATI RICERCA
         private void ExportBtn_Click(object sender, EventArgs e)
         {
-            labelExport.Text = "Ricerca dati...";
-            labelExport.Visible = true;
-
             if (export != null && !export.IsCompleted)
             {
                 MessageBox.Show("La precedente exportazione non è stata completata.\r\nAttendi", "Attenzione", MessageBoxButtons.OK);
                 return;
             }
+            Task t = Search();
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "All files (*.*)|*.*|Excel File (*.xlsx)|*.xlsx",
+                FilterIndex = 2,
+                RestoreDirectory = true
+            };
+
+            if (saveFileDialog.ShowDialog() != DialogResult.OK) return;
+            labelExport.Visible = true;
 
             export = Task.Run(() =>
             {
-                Search();
-
+                t.Wait();
                 WriteTextSafe("Creazione file...");
-                SaveFileDialog saveFileDialog = new SaveFileDialog
-                {
-                    Filter = "All files (*.*)|*.*|Excel File (*.xlsx)|*.xlsx",
-                    FilterIndex = 2,
-                    RestoreDirectory = true
-                };
-
-                if (saveFileDialog.ShowDialog() != DialogResult.OK)
-                {
-                    HideLabel(labelExport);
-                    return;
-                }
 
                 Stream toSave;
                 try
