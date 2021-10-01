@@ -4,7 +4,114 @@
     ViewData["Title"] = "Home page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="row">
+    <div class="col-sm-6 col-md-6 col-lg-3 justify-content-around">
+        Carica Dati
+        <button class="btn btn-info">Upload</button>
+    </div>
+    <div class="col-sm-6 col-md-6 col-lg-3 justify-content-around">
+        <button class="btn btn-dark" onclick="search()">Cerca</button>
+        <button class="btn btn-dark">Esporta</button>
+    </div>
+    <div class="col-sm-12 col-md-6 col-lg-6">
+        Filtri Ricerca e Esportazione:
+        <div class="d-flex flex-column">
+            <span class="d-flex flex-row justify-content-end mb-1">
+                Da:
+                <input name="Date_From" class="ml-1" type="date" />
+                <!--<input id="from-time" class="ml-1" type="time" />-->
+            </span>
+            <span class="d-flex flex-row justify-content-end mb-1">
+                A:
+                <input name="Date_To" class="ml-1" type="date" />
+                <!--<input id="to-time" class="ml-1" type="time" />-->
+            </span>
+            Temperatura:
+            <span class="d-flex flex-row justify-content-end mb-1">
+                Da:
+                <input name="Temp_From" class="ml-1" type="number" />
+            </span>
+            <span class="d-flex flex-row justify-content-end mb-1">
+                A:
+                <input name="Temp_To" class="ml-1" type="number" />
+            </span>
+            Umidit&aacute;:
+            <span class="d-flex flex-row justify-content-end mb-1">
+                Da:
+                <input name="Humid_From" class="ml-1" type="number" />
+            </span>
+            <span class="d-flex flex-row justify-content-end mb-1">
+                A:
+                <input name="Humid_To" class="ml-1" type="number" />
+            </span>
+        </div>
+    </div>
+    <div id="table-container" class="d-none col-12">
+        <table class="table table-responsive">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Temepratura</th>
+                    <th>Umidit&aacute;</th>
+                    <th>Position</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        const srvUrl = '@Url.Content("~")/',
+            search = () => {
+                const filters = {}, inputs = document.getElementsByTagName('input'), div = document.getElementById('table-container');
+
+                div.classList.add('d-none');
+
+                for (let i = 0; i < inputs.length; i++) {
+                    if (inputs.item(i).value)
+                        filters[inputs.item(i).name] = inputs.item(i).value;
+                }
+
+                console.log(filters);
+                console.log(new URLSearchParams(filters));
+                console.log(new URLSearchParams(filters).toString());
+
+                fetch(srvUrl +
+                    'Api' +
+                    (Object.keys(filters).length > 0 ?
+                        '?' + new URLSearchParams(filters).toString() :
+                        '')
+                ).then(resp => {
+                    if (resp.ok)
+                        return resp.json();
+                    else
+                        throw resp;
+                }).catch(error => {
+                    alert("Si è verificato un errore");
+                    console.error(error);
+                }).then(json => {
+                    const tbody = document.getElementsByTagName('tbody').item(0);
+
+                    if (!Array.isArray(json)) {
+                        tbody.innerHTML = "<tr><td colspan='4'>Nessun dato trovato</td></tr>"
+                        return;
+                    }
+
+                    let html = '';
+                    json.forEach(obj => {
+                        html += `<tr>
+                                    <td>${obj.dataRilevazione}</td>
+                                    <td>${obj.temperatura}</td>
+                                    <td>${obj.umidita}</td>
+                                    <td>${obj.position}</td>
+                                </tr>`;
+                    });
+
+                    tbody.innerHTML = html;
+                    div.classList.remove('d-none');
+                })
+            };
+    </script>
+}

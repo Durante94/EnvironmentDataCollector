@@ -13,6 +13,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using WebEnvironmentDataCollector.Data;
 using WebEnvironmentDataCollector.Models;
+using WebEnvironmentDataCollector.Util;
 
 namespace WebEnvironmentDataCollector
 {
@@ -33,7 +34,8 @@ namespace WebEnvironmentDataCollector
                     Configuration.GetConnectionString("DefaultConnection")));
             services.AddDefaultIdentity<AppUser>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddEntityFrameworkStores<ApplicationDbContext>();
-            services.AddRazorPages();
+            services.AddControllersWithViews();
+            services.AddRazorPages().AddNewtonsoftJson();
 
             services.Configure<IdentityOptions>(options =>
             {
@@ -65,6 +67,15 @@ namespace WebEnvironmentDataCollector
                 options.AccessDeniedPath = "/Identity/Account/AccessDenied";
                 options.SlidingExpiration = true;
             });
+
+            services.AddScoped<MongoHandler>();
+
+            //codice aggiunto (insieme al pacchetto nuget AddRazorRuntimeCompilation) per permettere di vedere le modifiche ai file cshmtl senza ricompilare
+            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+            {
+                services.AddControllersWithViews().AddRazorRuntimeCompilation();
+            }
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -93,6 +104,7 @@ namespace WebEnvironmentDataCollector
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapRazorPages();
+                endpoints.MapControllers();
             });
         }
     }
