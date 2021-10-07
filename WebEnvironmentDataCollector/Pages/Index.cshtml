@@ -7,6 +7,7 @@
 <div class="row">
     <div class="col-sm-6 col-md-6 col-lg-3 justify-content-around">
         Carica Dati
+        <input type="file" class="mb-1 form-control-file" />
         <button class="btn btn-info">Upload</button>
     </div>
     <div class="col-sm-6 col-md-6 col-lg-3 justify-content-around">
@@ -64,41 +65,24 @@
 @section Scripts {
     <script>
         const srvUrl = '@Url.Content("~")/',
-            search = () => {
-                const filters = {}, inputs = document.getElementsByTagName('input'), div = document.getElementById('table-container');
+            getFilters = () => {
+                const filters = {}, inputs = document.getElementsByTagName('input');
 
-                div.classList.add('d-none');
+                document.getElementById('table-container').classList.add('d-none');
 
                 for (let i = 0; i < inputs.length; i++) {
                     if (inputs.item(i).value)
                         filters[inputs.item(i).name] = inputs.item(i).value;
                 }
 
-                console.log(filters);
-                console.log(new URLSearchParams(filters));
-                console.log(new URLSearchParams(filters).toString());
+                return filters;
+            },
+            render = json => {
+                const tbody = document.getElementsByTagName('tbody').item(0);
 
-                fetch(srvUrl +
-                    'Api' +
-                    (Object.keys(filters).length > 0 ?
-                        '?' + new URLSearchParams(filters).toString() :
-                        '')
-                ).then(resp => {
-                    if (resp.ok)
-                        return resp.json();
-                    else
-                        throw resp;
-                }).catch(error => {
-                    alert("Si è verificato un errore");
-                    console.error(error);
-                }).then(json => {
-                    const tbody = document.getElementsByTagName('tbody').item(0);
-
-                    if (!Array.isArray(json)) {
-                        tbody.innerHTML = "<tr><td colspan='4'>Nessun dato trovato</td></tr>"
-                        return;
-                    }
-
+                if (!Array.isArray(json) || json.length == 0) {
+                    tbody.innerHTML = "<tr><td colspan='4'>Nessun dato trovato</td></tr>"
+                } else {
                     let html = '';
                     json.forEach(obj => {
                         html += `<tr>
@@ -110,8 +94,22 @@
                     });
 
                     tbody.innerHTML = html;
-                    div.classList.remove('d-none');
-                })
+                }
+                document.getElementById('table-container').classList.remove('d-none');
+            },
+            search = () => {
+                fetch(srvUrl +
+                    'Api?jsonFilters=' +
+                    JSON.stringify(getFilters())
+                ).then(resp => {
+                    if (resp.ok)
+                        return resp.json();
+                    else
+                        throw resp;
+                }).catch(error => {
+                    alert("Si è verificato un errore");
+                    console.error(error);
+                }).then(render);
             };
     </script>
 }

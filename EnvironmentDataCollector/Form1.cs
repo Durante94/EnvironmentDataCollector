@@ -81,7 +81,6 @@ namespace EnvironmentDataCollector
                     MessageBox.Show("File aperto da un 'altro processo.\r\nChiudere il file e riprovare!", "Errore", MessageBoxButtons.OK);
                     return;
                 }
-                //TASK PER NON BLOCCARE IL PROGRAMMA
 
                 int pos = FileDialog.FileName.LastIndexOf('.');
                 if (pos < 0)

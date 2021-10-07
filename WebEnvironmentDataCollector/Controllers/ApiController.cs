@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using WebEnvironmentDataCollector.Models;
@@ -15,23 +16,31 @@ namespace WebEnvironmentDataCollector.Controllers
     public class ApiController : ControllerBase
     {
         private readonly MongoHandler mongo;
+        private readonly FileHandler fileHandler;
 
-        public ApiController(MongoHandler mongo)
+        public ApiController(MongoHandler mongo, FileHandler fileHandler)
         {
             //aggiungere interrogazione al db sql per avere i dati di connessione al mongo relativi all'utente
             this.mongo = mongo;
             this.mongo.Init("", "", "", "");
+            this.fileHandler = fileHandler;
         }
 
         [HttpGet]
-        public IActionResult Get([FromQuery] Filters filters)
+        public IActionResult Get(string jsonFilters)
         {
-            return Ok(mongo.GetData(filters.GetFiletrs()));
+            return Ok(mongo.GetData(Newtonsoft.Json.JsonConvert.DeserializeObject<Filters>(jsonFilters).GetFiletrs()));
         }
 
         [HttpPost]
-        public void Post()
+        public IActionResult Post()
         {
+            if (Request.Form.Files.Count <= 0) return Ok(false);
+
+            if (fileHandler.SetFile(Request.Form.Files[0], mongo))
+                return Ok(true);
+
+            return Ok();
         }
     }
 }

@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UserSecretsId>aspnet-WebEnvironmentDataCollector-9750B736-D860-4FAF-B366-E7C22036FF98</UserSecretsId>
+    <ApplicationIcon>Logo-Avis.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

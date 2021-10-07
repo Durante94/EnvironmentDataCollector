@@ -28,6 +28,24 @@ namespace WebEnvironmentDataCollector.Util
             db = dbClient.GetDatabase("test");
         }
 
+        private IMongoDatabase GetDb(string dbName)
+        {
+            IMongoDatabase db;
+            if (!dbClient.ListDatabaseNames().ToList().Contains(dbName))
+            {
+                db = dbClient.GetDatabase(dbName);
+                db.CreateCollection(collName, new CreateCollectionOptions
+                {
+                    TimeSeriesOptions = new TimeSeriesOptions(DataDb.GetTimeSeriesField(), DataDb.metaFieldName)
+                });
+                db.GetCollection<DataDb>(collName).Indexes.CreateOne(new CreateIndexModel<DataDb>(DataDb.GetIndex()));
+            }
+            else
+                db = dbClient.GetDatabase(dbName);
+
+            return db;
+        }
+
         internal void SaveData(DataDb document)
         {
             if (db.GetCollection<DataDb>(collName).Find(x => x.DataRilevazione == document.DataRilevazione).CountDocuments() > 0) return;

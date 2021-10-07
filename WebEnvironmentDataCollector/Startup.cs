@@ -68,7 +68,8 @@ namespace WebEnvironmentDataCollector
                 options.SlidingExpiration = true;
             });
 
-            services.AddScoped<MongoHandler>();
+            services.AddScoped<MongoHandler>()
+                .AddScoped<FileHandler>();
 
             //codice aggiunto (insieme al pacchetto nuget AddRazorRuntimeCompilation) per permettere di vedere le modifiche ai file cshmtl senza ricompilare
             if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")

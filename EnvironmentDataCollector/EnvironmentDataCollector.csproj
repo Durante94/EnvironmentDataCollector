@@ -6,6 +6,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Configurations>Debug;Release;Release x64</Configurations>
     <Platforms>AnyCPU;x64</Platforms>
+    <ApplicationIcon>Logo-Avis.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
