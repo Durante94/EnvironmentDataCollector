@@ -8,11 +8,11 @@
     <div class="col-sm-6 col-md-6 col-lg-3 justify-content-around">
         Carica Dati
         <input id="file-input" type="file" multiple class="mb-1 form-control-file" />
-        <button class="btn btn-info">Upload</button>
+        <button class="btn btn-info mb-1" onclick="upload(this)">Upload</button>
     </div>
     <div class="col-sm-6 col-md-6 col-lg-3 justify-content-around">
-        <button class="btn btn-dark" onclick="search()">Cerca</button>
-        <button class="btn btn-dark">Esporta</button>
+        <button class="btn btn-dark" onclick="search(this)">Cerca</button>
+        <button class="btn btn-dark" onclick="bho(this)">Esporta</button>
     </div>
     <div class="col-sm-12 col-md-6 col-lg-6">
         Filtri Ricerca e Esportazione:
@@ -97,7 +97,8 @@
                 }
                 document.getElementById('table-container').classList.remove('d-none');
             },
-            search = () => {
+            search = (btn) => {
+                btn.innerHTML = btn.innerHTML + '<span class="spinner-border spinner-border-sm ml-1"></span>';
                 fetch(srvUrl +
                     'Api?jsonFilters=' +
                     JSON.stringify(getFilters())
@@ -109,10 +110,13 @@
                 }).catch(error => {
                     alert("Si è verificato un errore");
                     console.error(error);
-                }).then(render);
+                }).then(render)
+                    .then(() => btn.lastElementChild.remove());
             },
-            upload = () => {
+            upload = (btn) => {
                 const formData = new FormData(), fileList = document.getElementById('file-input').files;
+
+                btn.innerHTML = btn.innerHTML + '<span class="spinner-border spinner-border-sm ml-1"></span>';
 
                 for (let i = 0; i < fileList.length; i++) {
                     formData.append("files", fileList[i], fileList[i].name);
@@ -127,10 +131,16 @@
                     else
                         throw resp.json();
                 }).catch(error => {
-                    alert("Si è verificato un errore");
                     console.error(error);
+                    return {
+                        success: false,
+                        message: "Si è verificato un errore durante l'upload"
+                    };
                 }).then(json => {
-
+                    btn.lastElementChild.remove();
+                    if (!json.success) {
+                        alert(json.message);
+                    }
                 });
             };
     </script>

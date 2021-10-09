@@ -27,7 +27,7 @@ namespace WebEnvironmentDataCollector.Controllers
             this.mongo = mongo;
             this.mongo.Init("", "", "", "");
             this.fileHandler = fileHandler;
-            fileFolder = environment.WebRootPath;
+            fileFolder = Path.Combine(environment.WebRootPath, "Uploaded", User.Identity.Name);
         }
 
         [HttpGet]
@@ -53,7 +53,10 @@ namespace WebEnvironmentDataCollector.Controllers
                 if (fileHandler.SetFile(file, mongo))
                     fileErrors.Add(file.FileName);
                 else
-                    file.CopyToAsync(new FileStream(Path.Combine(fileFolder, file.FileName), FileMode.Create)).Wait();
+                    file.CopyToAsync(
+                        new FileStream(Path.Combine(fileFolder, DateTime.Now.ToString("yyyyMMddHHmmssff"))
+                        , FileMode.Create)
+                     ).Wait();
             }
 
             return Ok(new
