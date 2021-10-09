@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -17,13 +19,15 @@ namespace WebEnvironmentDataCollector.Controllers
     {
         private readonly MongoHandler mongo;
         private readonly FileHandler fileHandler;
+        private readonly string fileFolder;
 
-        public ApiController(MongoHandler mongo, FileHandler fileHandler)
+        public ApiController(MongoHandler mongo, FileHandler fileHandler, IWebHostEnvironment environment)
         {
             //aggiungere interrogazione al db sql per avere i dati di connessione al mongo relativi all'utente
             this.mongo = mongo;
             this.mongo.Init("", "", "", "");
             this.fileHandler = fileHandler;
+            fileFolder = environment.WebRootPath;
         }
 
         [HttpGet]
@@ -35,12 +39,28 @@ namespace WebEnvironmentDataCollector.Controllers
         [HttpPost]
         public IActionResult Post()
         {
-            if (Request.Form.Files.Count <= 0) return Ok(false);
+            if (Request.Form.Files.Count <= 0)
+                return Ok(new
+                {
+                    succes = false,
+                    message = "Nessun file inviato"
+                });
 
-            if (fileHandler.SetFile(Request.Form.Files[0], mongo))
-                return Ok(true);
+            List<string> fileErrors = new List<string>();
 
-            return Ok();
+            foreach (IFormFile file in Request.Form.Files)
+            {
+                if (fileHandler.SetFile(file, mongo))
+                    fileErrors.Add(file.FileName);
+                else
+                    file.CopyToAsync(new FileStream(Path.Combine(fileFolder, file.FileName), FileMode.Create)).Wait();
+            }
+
+            return Ok(new
+            {
+                succes = fileErrors.Count == 0,
+                message = (fileErrors.Count == 0 ? "" : $"File non letti: {string.Join(", ", fileErrors)}")
+            });
         }
     }
 }

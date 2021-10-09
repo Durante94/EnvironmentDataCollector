@@ -7,7 +7,7 @@
 <div class="row">
     <div class="col-sm-6 col-md-6 col-lg-3 justify-content-around">
         Carica Dati
-        <input type="file" class="mb-1 form-control-file" />
+        <input id="file-input" type="file" multiple class="mb-1 form-control-file" />
         <button class="btn btn-info">Upload</button>
     </div>
     <div class="col-sm-6 col-md-6 col-lg-3 justify-content-around">
@@ -16,7 +16,7 @@
     </div>
     <div class="col-sm-12 col-md-6 col-lg-6">
         Filtri Ricerca e Esportazione:
-        <div class="d-flex flex-column">
+        <div id="filters-containers" class="d-flex flex-column">
             <span class="d-flex flex-row justify-content-end mb-1">
                 Da:
                 <input name="Date_From" class="ml-1" type="date" />
@@ -66,7 +66,7 @@
     <script>
         const srvUrl = '@Url.Content("~")/',
             getFilters = () => {
-                const filters = {}, inputs = document.getElementsByTagName('input');
+                const filters = {}, inputs = document.getElementById('filters-containers').getElementsByTagName('input');
 
                 document.getElementById('table-container').classList.add('d-none');
 
@@ -110,6 +110,28 @@
                     alert("Si è verificato un errore");
                     console.error(error);
                 }).then(render);
+            },
+            upload = () => {
+                const formData = new FormData(), fileList = document.getElementById('file-input').files;
+
+                for (let i = 0; i < fileList.length; i++) {
+                    formData.append("files", fileList[i], fileList[i].name);
+                }
+
+                fetch(srvUrl + 'Api', {
+                    method: 'POST',
+                    body: formData
+                }).then(resp => {
+                    if (resp.ok)
+                        return resp.json();
+                    else
+                        throw resp.json();
+                }).catch(error => {
+                    alert("Si è verificato un errore");
+                    console.error(error);
+                }).then(json => {
+
+                });
             };
     </script>
 }
