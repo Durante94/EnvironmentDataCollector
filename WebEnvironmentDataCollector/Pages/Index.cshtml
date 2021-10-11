@@ -51,10 +51,10 @@
         <table class="table table-responsive">
             <thead>
                 <tr>
-                    <th>Data</th>
-                    <th>Temepratura</th>
-                    <th>Umidit&aacute;</th>
-                    <th>Position</th>
+                    <th class="w-25">Data</th>
+                    <th class="w-25">Temepratura</th>
+                    <th class="w-25">Umidit&aacute;</th>
+                    <th class="w-25">Position</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -64,7 +64,7 @@
 
 @section Scripts {
     <script>
-        const srvUrl = '@Url.Content("~")/',
+        const srvUrl = '@Url.Content("~")/', localKey = 'uploaded',
             getFilters = () => {
                 const filters = {}, inputs = document.getElementById('filters-containers').getElementsByTagName('input');
 
@@ -78,7 +78,14 @@
                 return filters;
             },
             render = json => {
-                const tbody = document.getElementsByTagName('tbody').item(0);
+                const tbody = document.getElementsByTagName('tbody').item(0), localeOpt = {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: 'numeric',
+                    second: 'numeric'
+                };
 
                 if (!Array.isArray(json) || json.length == 0) {
                     tbody.innerHTML = "<tr><td colspan='4'>Nessun dato trovato</td></tr>"
@@ -86,10 +93,10 @@
                     let html = '';
                     json.forEach(obj => {
                         html += `<tr>
-                                    <td>${obj.dataRilevazione}</td>
-                                    <td>${obj.temperatura}</td>
-                                    <td>${obj.umidita}</td>
-                                    <td>${obj.position}</td>
+                                    <td>${new Date(obj.dataRilevazione).toLocaleString("it-IT", localeOpt)}</td >
+                                    <td class="text-right">${obj.temperatura}</td>
+                                    <td class="text-right">${obj.umidita}</td>
+                                    <td class="text-right">${obj.position}</td>
                                 </tr>`;
                     });
 
@@ -99,17 +106,58 @@
             },
             search = (btn) => {
                 btn.innerHTML = btn.innerHTML + '<span class="spinner-border spinner-border-sm ml-1"></span>';
+                const filters = getFilters();
                 fetch(srvUrl +
                     'Api?jsonFilters=' +
-                    JSON.stringify(getFilters())
+                    JSON.stringify(filters)
                 ).then(resp => {
                     if (resp.ok)
                         return resp.json();
                     else
-                        throw resp;
+                        throw resp.json();
                 }).catch(error => {
-                    alert("Si è verificato un errore");
+                    alert("Impossibile interroagare il sistema");
                     console.error(error);
+
+                    const parsed = JSON.parse(localStorage.getItem(localKey)), toShow = [];
+
+                    if (!Array.isArray(parsed)) return toShow;
+
+                    for (let i = 0; i < parsed.length; i++) {
+                        const data = new Date();
+                        const day = parsed[i]['Date'].split('/'), time = parsed[i]['Time'].split(':');
+
+                        data.setFullYear(parseInt(day[0]), parseInt(day[1]), parseInt(day[2]));
+                        data.setHours(parseInt(time[0]), parseInt(time[1]), parseInt(time[2]));
+
+                        if (filters.hasOwnProperty('Date_From')) {
+                            const dateFrom = new Date(filters['Date_From']);
+                            dateFrom.setDate(dateFrom.getDate() + 1);
+                            dateFrom.setHours(0, 0, 0, 0);
+
+                            if (data < dateFrom) continue;
+                        }
+                        if (filters.hasOwnProperty('Date_To')) {
+                            const dateTo = new Date(filters['Date_To']);
+                            dateTo.setDate(dateTo.getDate() + 1);
+                            dateTo.setHours(0, 0, 0, 0);
+
+                            if(data > dateTo) continue;
+                        }
+                        if (filters.hasOwnProperty('Temp_From') && parseFloat(parsed[i]['Ch2_Value'].replace(',', '.')) < parseFloat(filters['Temp_From'])) continue;
+                        if (filters.hasOwnProperty('Temp_To') && parseFloat(parsed[i]['Ch2_Value'].replace(',', '.')) > parseFloat(filters['Temp_To'])) continue;
+                        if (filters.hasOwnProperty('Humid_From') && parseFloat(parsed[i]['Ch1_Value'].replace(',', '.')) < parseFloat(filters['Humid_From'])) continue;
+                        if (filters.hasOwnProperty('Humid_To') && parseFloat(parsed[i]['Ch1_Value'].replace(',', '.')) > parseFloat(filters['Humid_To'])) continue;
+
+                        toShow.push({
+                            'position': parseInt(parsed[i]['Position']),
+                            'dataRilevazione': data,
+                            'umidita': parseFloat(parsed[i]['Ch1_Value'].replace(',', '.')) + parsed[i]['Ch1_Unit'].trim(),
+                            'temperatura': parseFloat(parsed[i]['Ch2_Value'].replace(',', '.')) + parsed[i]['Ch2_unit'].trim().replace("DEGREE ", "°")
+                        });
+                    }
+
+                    return toShow;
                 }).then(render)
                     .then(() => btn.lastElementChild.remove());
             },
@@ -134,12 +182,43 @@
                     console.error(error);
                     return {
                         success: false,
-                        message: "Si è verificato un errore durante l'upload"
+                        message: "Si è verificato un errore durante l'upload",
+                        localeSave: true
                     };
                 }).then(json => {
                     btn.lastElementChild.remove();
                     if (!json.success) {
                         alert(json.message);
+                    }
+                    if (json.localeSave) {
+                        const reader = new FileReader();
+
+                        reader.onload = e => {
+                            const rows = e.target.result.split(/\r|\n/), props = [], toStore = [];
+
+                            rows[0].split('\t').forEach(propName => props.push(propName));
+
+                            for (let i = 1; i < rows.length; i++) {
+                                if (rows[i].length == 0) continue;
+
+                                const row = rows[i].split('\t'), obj = {};
+
+                                if (row.length == 0) continue;
+
+                                for (let j = 0; j < props.length; j++) {
+                                    obj[props[j]] = row[j];
+                                }
+                                toStore.push(obj);
+                            }
+
+                            const tmp = localStorage.getItem(localKey) != null ? JSON.parse(localStorage.getItem(localKey)) : [];
+                            localStorage.setItem(localKey, JSON.stringify(tmp.concat(toStore)));
+                        }
+
+                        for (let i = 0; i < fileList.length; i++) {
+                            reader.readAsBinaryString(fileList[i]);
+                        }
+                        alert('È comunque possibile interrogare il sistema sui dati appena caricati');
                     }
                 });
             };

@@ -11,7 +11,7 @@ using System.Text;
 
 namespace WebEnvironmentDataCollector.Models
 {
-    internal class BaseData
+    public class BaseData
     {
         [Integer]
         public long Position { get; protected set; }
@@ -26,7 +26,7 @@ namespace WebEnvironmentDataCollector.Models
     }
 
     //CLASSE PER PARSARE IL FILE EXCEL
-    internal class DataMap : BaseData
+    public class DataMap : BaseData
     {
         private string ch2_Unit;
 
@@ -78,6 +78,7 @@ namespace WebEnvironmentDataCollector.Models
             }
         }
 
+        [JsonConstructor]
         private DataMap() : base()
         {
         }

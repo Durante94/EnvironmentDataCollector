@@ -23,11 +23,18 @@ namespace WebEnvironmentDataCollector.Controllers
 
         public ApiController(MongoHandler mongo, FileHandler fileHandler, IWebHostEnvironment environment)
         {
+            string tmp = Path.Combine(environment.WebRootPath, "Uploaded");
+
             //aggiungere interrogazione al db sql per avere i dati di connessione al mongo relativi all'utente
             this.mongo = mongo;
             this.mongo.Init("", "", "", "");
             this.fileHandler = fileHandler;
-            fileFolder = Path.Combine(environment.WebRootPath, "Uploaded", User.Identity.Name);
+            //fileFolder = Path.Combine(tmp, User.Identity.Name);
+
+            if (!Directory.Exists(tmp))
+                Directory.CreateDirectory(tmp);
+            //if (!Directory.Exists(fileFolder))
+            //    Directory.CreateDirectory(fileFolder);
         }
 
         [HttpGet]
@@ -42,7 +49,7 @@ namespace WebEnvironmentDataCollector.Controllers
             if (Request.Form.Files.Count <= 0)
                 return Ok(new
                 {
-                    succes = false,
+                    success = false,
                     message = "Nessun file inviato"
                 });
 
@@ -54,16 +61,24 @@ namespace WebEnvironmentDataCollector.Controllers
                     fileErrors.Add(file.FileName);
                 else
                     file.CopyToAsync(
-                        new FileStream(Path.Combine(fileFolder, DateTime.Now.ToString("yyyyMMddHHmmssff"))
-                        , FileMode.Create)
-                     ).Wait();
+                        new FileStream(Path.Combine(fileFolder, DateTime.Now.ToString("yyyyMMddHHmmssff") + ".csv"),
+                        FileMode.CreateNew, FileAccess.Write)
+                     );
             }
 
             return Ok(new
             {
-                succes = fileErrors.Count == 0,
+                success = fileErrors.Count == 0,
                 message = (fileErrors.Count == 0 ? "" : $"File non letti: {string.Join(", ", fileErrors)}")
             });
+        }
+
+        [HttpPost("Json")]
+        public IActionResult Json([FromBody] List<DataMap> fromJson)
+        {
+            fromJson.ForEach(x => mongo.SaveData(x.ConvertForDB()));
+
+            return Ok();
         }
     }
 }
