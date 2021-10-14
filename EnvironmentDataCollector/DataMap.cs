@@ -15,7 +15,7 @@ namespace EnvironmentDataCollector
         [Integer]
         public long Position { get; protected set; }
 
-        [BsonTSField]
+        [BsonTSField, BsonDateTimeOptions(Kind = DateTimeKind.Local)]
         public DateTime DataRilevazione { get; protected set; }
 
         protected BaseData()
@@ -209,6 +209,8 @@ namespace EnvironmentDataCollector
             {
                 if (property.GetCustomAttribute<BsonIndexAttribute>() != null)
                     index = index.Ascending(metaFieldName + "." + property.Name);
+                else if (property.GetCustomAttribute<BsonTSFieldAttribute>() != null)
+                    index = index.Ascending(property.Name);
             }
             return index;
         }

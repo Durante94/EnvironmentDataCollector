@@ -78,7 +78,7 @@ namespace WebEnvironmentDataCollector.Controllers
         {
             fromJson.ForEach(x => mongo.SaveData(x.ConvertForDB()));
 
-            return Ok();
+            return Ok(true);
         }
     }
 }

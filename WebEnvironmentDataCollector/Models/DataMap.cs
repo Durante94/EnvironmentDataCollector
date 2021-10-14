@@ -16,7 +16,7 @@ namespace WebEnvironmentDataCollector.Models
         [Integer]
         public long Position { get; protected set; }
 
-        [BsonTSField]
+        [BsonTSField, BsonDateTimeOptions(Kind = DateTimeKind.Local)]
         public DateTime DataRilevazione { get; protected set; }
 
         protected BaseData()

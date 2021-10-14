@@ -4,6 +4,17 @@
     ViewData["Title"] = "Home page";
 }
 
+@section Styles{
+    <style>
+        #chart-container {
+            position: relative;
+            margin: auto;
+            height: 10vh;
+            width: 100%;
+        }
+    </style>
+}
+
 <div class="row">
     <div class="col-sm-6 col-md-6 col-lg-3 justify-content-around">
         Carica Dati
@@ -12,7 +23,7 @@
     </div>
     <div class="col-sm-6 col-md-6 col-lg-3 justify-content-around">
         <button class="btn btn-dark" onclick="search(this)">Cerca</button>
-        <button class="btn btn-dark" onclick="bho(this)">Esporta</button>
+        <button class="btn btn-dark" onclick="exportPDF(this)">Esporta</button>
     </div>
     <div class="col-sm-12 col-md-6 col-lg-6">
         Filtri Ricerca e Esportazione:
@@ -60,11 +71,17 @@
             <tbody></tbody>
         </table>
     </div>
+    <div id="chart-container">
+        <canvas class="d-none" width="400" height="100"><p>temp</p></canvas>
+    </div>
 </div>
 
 @section Scripts {
     <script>
-        const srvUrl = '@Url.Content("~")/', localKey = 'uploaded',
+        const srvUrl = '@Url.Content("~")/',
+            //CHIAVE UNIVOCA DI SALVATAGGIO DATI AMBIENTALI SU LOCAL STROAGE
+            localKey = 'uploaded',
+            //RACCOLTA DATI DEI FILTRI DI RICERCA
             getFilters = () => {
                 const filters = {}, inputs = document.getElementById('filters-containers').getElementsByTagName('input');
 
@@ -77,6 +94,7 @@
 
                 return filters;
             },
+            //VISULIZZAZIONE A SCHERMO DEI DATI IN FORMA TABELLARE
             render = json => {
                 const tbody = document.getElementsByTagName('tbody').item(0), localeOpt = {
                     year: 'numeric',
@@ -104,63 +122,178 @@
                 }
                 document.getElementById('table-container').classList.remove('d-none');
             },
-            search = (btn) => {
-                btn.innerHTML = btn.innerHTML + '<span class="spinner-border spinner-border-sm ml-1"></span>';
-                const filters = getFilters();
-                fetch(srvUrl +
+            //RESTITUZIONE DEL JSON DEI DATI DA LOCAL STORAGE SE PRESENTI
+            getFromLocalStorage = filters => {
+                const parsed = JSON.parse(localStorage.getItem(localKey)), toShow = [];
+
+                if (!Array.isArray(parsed)) return toShow;
+
+                for (let i = 0; i < parsed.length; i++) {
+                    const data = new Date();
+                    const day = parsed[i]['Date'].split('/'), time = parsed[i]['Time'].split(':');
+
+                    data.setFullYear(parseInt(day[0]), parseInt(day[1]), parseInt(day[2]));
+                    data.setHours(parseInt(time[0]), parseInt(time[1]), parseInt(time[2]));
+
+                    if (filters.hasOwnProperty('Date_From')) {
+                        const dateFrom = new Date(filters['Date_From']);
+                        dateFrom.setDate(dateFrom.getDate() + 1);
+                        dateFrom.setHours(0, 0, 0, 0);
+
+                        if (data < dateFrom) continue;
+                    }
+                    if (filters.hasOwnProperty('Date_To')) {
+                        const dateTo = new Date(filters['Date_To']);
+                        dateTo.setDate(dateTo.getDate() + 1);
+                        dateTo.setHours(0, 0, 0, 0);
+
+                        if (data > dateTo) continue;
+                    }
+                    if (filters.hasOwnProperty('Temp_From') && parseFloat(parsed[i]['Ch2_Value'].replace(',', '.')) < parseFloat(filters['Temp_From'])) continue;
+                    if (filters.hasOwnProperty('Temp_To') && parseFloat(parsed[i]['Ch2_Value'].replace(',', '.')) > parseFloat(filters['Temp_To'])) continue;
+                    if (filters.hasOwnProperty('Humid_From') && parseFloat(parsed[i]['Ch1_Value'].replace(',', '.')) < parseFloat(filters['Humid_From'])) continue;
+                    if (filters.hasOwnProperty('Humid_To') && parseFloat(parsed[i]['Ch1_Value'].replace(',', '.')) > parseFloat(filters['Humid_To'])) continue;
+
+                    toShow.push({
+                        'position': parseInt(parsed[i]['Position']),
+                        'dataRilevazione': data,
+                        'umidita': parseFloat(parsed[i]['Ch1_Value'].replace(',', '.')) + parsed[i]['Ch1_Unit'].trim(),
+                        'temperatura': parseFloat(parsed[i]['Ch2_Value'].replace(',', '.')) + parsed[i]['Ch2_unit'].trim().replace("DEGREE ", "°")
+                    });
+                }
+
+                return toShow;
+            },
+            //INTERROGAZIONE DEL SISTEMA PER I DATI AMBIENTALI
+            getFromRemote = filters => {
+                return fetch(srvUrl +
                     'Api?jsonFilters=' +
                     JSON.stringify(filters)
                 ).then(resp => {
-                    if (resp.ok)
+                    if (resp.ok) {
+                        uploadJson();
                         return resp.json();
-                    else
+                    } else
                         throw resp.json();
                 }).catch(error => {
                     alert("Impossibile interroagare il sistema");
                     console.error(error);
 
-                    const parsed = JSON.parse(localStorage.getItem(localKey)), toShow = [];
-
-                    if (!Array.isArray(parsed)) return toShow;
-
-                    for (let i = 0; i < parsed.length; i++) {
-                        const data = new Date();
-                        const day = parsed[i]['Date'].split('/'), time = parsed[i]['Time'].split(':');
-
-                        data.setFullYear(parseInt(day[0]), parseInt(day[1]), parseInt(day[2]));
-                        data.setHours(parseInt(time[0]), parseInt(time[1]), parseInt(time[2]));
-
-                        if (filters.hasOwnProperty('Date_From')) {
-                            const dateFrom = new Date(filters['Date_From']);
-                            dateFrom.setDate(dateFrom.getDate() + 1);
-                            dateFrom.setHours(0, 0, 0, 0);
-
-                            if (data < dateFrom) continue;
-                        }
-                        if (filters.hasOwnProperty('Date_To')) {
-                            const dateTo = new Date(filters['Date_To']);
-                            dateTo.setDate(dateTo.getDate() + 1);
-                            dateTo.setHours(0, 0, 0, 0);
-
-                            if(data > dateTo) continue;
-                        }
-                        if (filters.hasOwnProperty('Temp_From') && parseFloat(parsed[i]['Ch2_Value'].replace(',', '.')) < parseFloat(filters['Temp_From'])) continue;
-                        if (filters.hasOwnProperty('Temp_To') && parseFloat(parsed[i]['Ch2_Value'].replace(',', '.')) > parseFloat(filters['Temp_To'])) continue;
-                        if (filters.hasOwnProperty('Humid_From') && parseFloat(parsed[i]['Ch1_Value'].replace(',', '.')) < parseFloat(filters['Humid_From'])) continue;
-                        if (filters.hasOwnProperty('Humid_To') && parseFloat(parsed[i]['Ch1_Value'].replace(',', '.')) > parseFloat(filters['Humid_To'])) continue;
-
-                        toShow.push({
-                            'position': parseInt(parsed[i]['Position']),
-                            'dataRilevazione': data,
-                            'umidita': parseFloat(parsed[i]['Ch1_Value'].replace(',', '.')) + parsed[i]['Ch1_Unit'].trim(),
-                            'temperatura': parseFloat(parsed[i]['Ch2_Value'].replace(',', '.')) + parsed[i]['Ch2_unit'].trim().replace("DEGREE ", "°")
-                        });
-                    }
-
-                    return toShow;
-                }).then(render)
+                    return getFromLocalStorage(filters);
+                })
+            },
+            //CLICK SU PULSANTE CERCA
+            search = (btn) => {
+                btn.innerHTML = btn.innerHTML + '<span class="spinner-border spinner-border-sm ml-1"></span>';
+                getFromRemote(getFilters())
+                    .then(render)
                     .then(() => btn.lastElementChild.remove());
             },
+            //CLICK SU PULSANTE ESPORTA
+            exportPDF = (btn) => {
+                btn.innerHTML = btn.innerHTML + '<span class="spinner-border spinner-border-sm ml-1"></span>';
+                getFromRemote(getFilters())
+                    .then(json => {
+                        render(json);
+                        const doc = new jsPDF('p', 'mm', 'a4');
+                        //GRAFICI
+                        console.log(json.map(x => { return { "x": new Date(x.dataRilevazione), "y": x.temperatura }; }));
+                        const chartToDraw = new Chart(document.getElementById('chart-container').children.item(0), {
+                            type: 'line',
+                            data: json.map(x => { return { 'x': new Date(x.dataRilevazione), 'y': x.temperatura }; }),
+                            options: {
+                                animation: false,
+                                title: {
+                                    display: true,
+                                    text: 'Misurazioni Stanza Donazioni',
+                                },
+                                scales: {
+                                    yAxes: [
+                                        {
+                                            scaleLabel: {
+                                                display: true,
+                                                labelString: 'Temperatura'
+                                            },
+                                            ticks: {
+                                                reverse: true,
+                                                beginAtZero: false
+                                            }
+                                        }//,
+                                        //{
+                                        //    scaleLabel: {
+                                        //        display: true,
+                                        //        labelString: 'Umidità'
+                                        //    },
+                                        //    ticks: {
+                                        //        reverse: true,
+                                        //        beginAtZero: false
+                                        //    }
+                                        //}
+                                    ],
+                                    xAxes: [{
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'Data e ora'
+                                        },
+                                    }]
+                                }
+                            },
+                            plugins: [{
+                                afterDraw: async function (chart, options) {
+                                    const canvasImg = chart.canvas.toDataURL();
+                                    console.log(canvasImg);
+                                    //doc.addPage('a4', 'p');
+                                    doc.addImage(canvasImg, 'JPEG', 10, 10, 190, 120, '', 'FAST');
+                                }
+                            }]
+                        });
+                        //GRFIVO UMIDITÀ
+                        new Chart(document.getElementById('chart-container').children.item(0), {
+                            type: 'line',
+                            data: json.map(x => { return { 'x': new Date(x.dataRilevazione), 'y': x.umidita }; }),
+                            options: {
+                                animation: false,
+                                title: {
+                                    display: true,
+                                    text: 'Misurazioni Stanza Donazioni',
+                                },
+                                scales: {
+                                    yAxes: [
+                                        {
+                                            scaleLabel: {
+                                                display: true,
+                                                labelString: 'Umidità'
+                                            },
+                                            ticks: {
+                                                reverse: true,
+                                                beginAtZero: false
+                                            }
+                                        }
+                                    ],
+                                    xAxes: [{
+                                        scaleLabel: {
+                                            display: true,
+                                            labelString: 'Data e ora'
+                                        },
+                                    }]
+                                }
+                            },
+                            plugins: [{
+                                afterDraw: async function (chart, options) {
+                                    const canvasImg = chart.canvas.toDataURL();
+                                    console.log(canvasImg);
+                                    //doc.addPage('a4', 'p');
+                                    doc.addImage(canvasImg, 'JPEG', 10, 140, 190, 120, '', 'FAST');
+                                }
+                            }]
+                        });
+                        //TABELLA
+                        //doc.autoTable({ html: '#table-container>table' });
+                        window.open(URL.createObjectURL(doc.output("blob")));
+                    })
+                    .then(() => btn.lastElementChild.remove());
+            },
+            //CARICAMENTO DEI FILE CON I DATI DA SALVARE
             upload = (btn) => {
                 const formData = new FormData(), fileList = document.getElementById('file-input').files;
 
@@ -189,7 +322,9 @@
                     btn.lastElementChild.remove();
                     if (!json.success) {
                         alert(json.message);
-                    }
+                    } else
+                        uploadJson();
+
                     if (json.localeSave) {
                         const reader = new FileReader();
 
@@ -221,6 +356,27 @@
                         alert('È comunque possibile interrogare il sistema sui dati appena caricati');
                     }
                 });
+            },
+            //CARICAMENTO DEI DATI DA LOCAL STORAGE, SE PRESENTI
+            uploadJson = () => {
+                if (localStorage.getItem(localKey) == null) return;
+
+                fetch(srvUrl + 'Api', {
+                    method: 'POST',
+                    body: localStorage.getItem(localKey)
+                }).then(resp => {
+                    if (resp.ok)
+                        return resp.json();
+                    else
+                        throw resp.json();
+                }).catch(json => {
+                    console.error(json);
+                    return false;
+                }).
+                    then(bool => bool ? localStorage.removeItem(localKey) : null);
             };
     </script>
+    <script src="~/js/Chart.min.js"></script>
+    <script src="~/js/jspdf.min.js"></script>
+    <script src="~/js/jspdf.plugin.autotable.min.js"></script>
 }
