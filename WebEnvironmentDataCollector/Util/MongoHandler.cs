@@ -1,4 +1,5 @@
 ﻿using MongoDB.Bson;
+using MongoDB.Bson.IO;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -46,6 +47,14 @@ namespace WebEnvironmentDataCollector.Util
             return db;
         }
 
+        internal JsonWriterSettings JWS
+        {
+            get
+            {
+                return new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
+            }
+        }
+
         internal void SaveData(DataDb document)
         {
             if (db.GetCollection<DataDb>(collName).Find(x => x.DataRilevazione == document.DataRilevazione).CountDocuments() > 0) return;
@@ -55,6 +64,7 @@ namespace WebEnvironmentDataCollector.Util
 
         internal List<DataDb> GetData(BsonDocument filter)
         {
+            db.GetCollection<BsonDocument>("Log").InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", "Ricerca" }, { "documento", filter.ToJson(JWS) } });
             return db.GetCollection<DataDb>(collName).Find(filter).Sort(Builders<DataDb>.Sort.Ascending(x => x.DataRilevazione)).ToList();
         }
     }

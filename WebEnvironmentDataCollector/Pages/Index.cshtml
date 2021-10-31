@@ -72,7 +72,8 @@
         </table>
     </div>
     <div id="chart-container">
-        <canvas class="d-none" width="400" height="100"><p>temp</p></canvas>
+        <canvas width="400" height="100"><p>temp</p></canvas><!--class="d-none"-->
+        <canvas width="400" height="100"><p>temp</p></canvas><!--class="d-none"-->
     </div>
 </div>
 
@@ -81,6 +82,15 @@
         const srvUrl = '@Url.Content("~")/',
             //CHIAVE UNIVOCA DI SALVATAGGIO DATI AMBIENTALI SU LOCAL STROAGE
             localKey = 'uploaded',
+            //OPZIONI PER DATA IN STRINGA
+            localeOpt = {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric'
+            },
             //RACCOLTA DATI DEI FILTRI DI RICERCA
             getFilters = () => {
                 const filters = {}, inputs = document.getElementById('filters-containers').getElementsByTagName('input');
@@ -96,14 +106,7 @@
             },
             //VISULIZZAZIONE A SCHERMO DEI DATI IN FORMA TABELLARE
             render = json => {
-                const tbody = document.getElementsByTagName('tbody').item(0), localeOpt = {
-                    year: 'numeric',
-                    month: 'numeric',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: 'numeric',
-                    second: 'numeric'
-                };
+                const tbody = document.getElementsByTagName('tbody').item(0);
 
                 if (!Array.isArray(json) || json.length == 0) {
                     tbody.innerHTML = "<tr><td colspan='4'>Nessun dato trovato</td></tr>"
@@ -190,17 +193,44 @@
                     .then(() => btn.lastElementChild.remove());
             },
             //CLICK SU PULSANTE ESPORTA
-            exportPDF = (btn) => {
+            exportPDF = async (btn) => {
                 btn.innerHTML = btn.innerHTML + '<span class="spinner-border spinner-border-sm ml-1"></span>';
                 getFromRemote(getFilters())
                     .then(json => {
                         render(json);
-                        const doc = new jsPDF('p', 'mm', 'a4');
+                        const doc = new jsPDF('p', 'mm', 'a4'),
+                            aTemperature = [],
+                            aUmidità = [];
+
+                        //for (let i = 0; i < json.length; i++) {
+                        //    console.log(json[i].temperatura, json[i].temperatura.substring(0, json[i].temperatura.length - 2));
+                        //    aTemperature.push({ 'x': new Date(json[i].dataRilevazione).toLocaleString("it-IT", localeOpt), 'y': parseFloat(json[i].temperatura.substring(0, json[i].temperatura.length - 2)) });
+
+                        //    console.log(json[i].umidita, json[i].umidita.substring(0, json[i].temperatura.length - 2));
+                        //    aUmidità.push({ 'x': new Date(json[i].dataRilevazione).toLocaleString("it-IT", localeOpt), 'y': parseFloat(json[i].umidita.substring(0, json[i].temperatura.length - 2)) });
+                        //}
+                        aTemperature.push({ 'x': new Date("2021-10-26T17:00:00Z"), 'y': 0 },
+                            { 'x': new Date("2021-10-26T17:01:00Z"), 'y': 2 },
+                            { 'x': new Date("2021-10-26T17:02:00Z"), 'y': 4 },
+                            { 'x': new Date("2021-10-26T17:03:00Z"), 'y': 6 },
+                            { 'x': new Date("2021-10-26T17:04:00Z"), 'y': 8 },
+                            { 'x': new Date("2021-10-26T17:05:00Z"), 'y': 10 },
+                            { 'x': new Date("2021-10-26T17:06:00Z"), 'y': 12 },
+                            { 'x': new Date("2021-10-26T17:07:00Z"), 'y': 14 });
+                        aUmidità.push({ 'x': new Date("2021-10-26T17:00:00Z"), 'y': 0 },
+                            { 'x': new Date("2021-10-26T17:01:00Z"), 'y': 2 },
+                            { 'x': new Date("2021-10-26T17:02:00Z"), 'y': 4 },
+                            { 'x': new Date("2021-10-26T17:03:00Z"), 'y': 6 },
+                            { 'x': new Date("2021-10-26T17:04:00Z"), 'y': 8 },
+                            { 'x': new Date("2021-10-26T17:05:00Z"), 'y': 10 },
+                            { 'x': new Date("2021-10-26T17:06:00Z"), 'y': 12 },
+                            { 'x': new Date("2021-10-26T17:07:00Z"), 'y': 14 });
+
+
                         //GRAFICI
-                        console.log(json.map(x => { return { "x": new Date(x.dataRilevazione), "y": x.temperatura }; }));
-                        const chartToDraw = new Chart(document.getElementById('chart-container').children.item(0), {
+                        new Chart(document.getElementById('chart-container').children.item(0), {
                             type: 'line',
-                            data: json.map(x => { return { 'x': new Date(x.dataRilevazione), 'y': x.temperatura }; }),
+                            data: aTemperature,
                             options: {
                                 animation: false,
                                 title: {
@@ -208,34 +238,34 @@
                                     text: 'Misurazioni Stanza Donazioni',
                                 },
                                 scales: {
-                                    yAxes: [
-                                        {
-                                            scaleLabel: {
-                                                display: true,
-                                                labelString: 'Temperatura'
-                                            },
-                                            ticks: {
-                                                reverse: true,
-                                                beginAtZero: false
-                                            }
-                                        }//,
-                                        //{
-                                        //    scaleLabel: {
-                                        //        display: true,
-                                        //        labelString: 'Umidità'
-                                        //    },
-                                        //    ticks: {
-                                        //        reverse: true,
-                                        //        beginAtZero: false
-                                        //    }
-                                        //}
-                                    ],
-                                    xAxes: [{
-                                        scaleLabel: {
-                                            display: true,
-                                            labelString: 'Data e ora'
-                                        },
-                                    }]
+                                    //yAxes: [
+                                    //    {
+                                    //        scaleLabel: {
+                                    //            display: true,
+                                    //            labelString: 'Temperatura'
+                                    //        },
+                                    //        ticks: {
+                                    //            reverse: true,
+                                    //            beginAtZero: false
+                                    //        }
+                                    //    }
+                                    //],
+                                    //xAxes: [{
+                                    //    type: 'time',
+                                    //    scaleLabel: {
+                                    //        display: true,
+                                    //        labelString: 'Data e ora'
+                                    //    },
+                                    //}]
+                                    x: {
+                                        type: 'timeseries',
+                                        time: {
+                                            unit: 'minutes'
+                                        }
+                                    },
+                                    y: {
+                                        beginAtZero: false
+                                    }
                                 }
                             },
                             plugins: [{
@@ -247,46 +277,47 @@
                                 }
                             }]
                         });
-                        //GRFIVO UMIDITÀ
-                        new Chart(document.getElementById('chart-container').children.item(0), {
-                            type: 'line',
-                            data: json.map(x => { return { 'x': new Date(x.dataRilevazione), 'y': x.umidita }; }),
-                            options: {
-                                animation: false,
-                                title: {
-                                    display: true,
-                                    text: 'Misurazioni Stanza Donazioni',
-                                },
-                                scales: {
-                                    yAxes: [
-                                        {
-                                            scaleLabel: {
-                                                display: true,
-                                                labelString: 'Umidità'
-                                            },
-                                            ticks: {
-                                                reverse: true,
-                                                beginAtZero: false
-                                            }
-                                        }
-                                    ],
-                                    xAxes: [{
-                                        scaleLabel: {
-                                            display: true,
-                                            labelString: 'Data e ora'
-                                        },
-                                    }]
-                                }
-                            },
-                            plugins: [{
-                                afterDraw: async function (chart, options) {
-                                    const canvasImg = chart.canvas.toDataURL();
-                                    console.log(canvasImg);
-                                    //doc.addPage('a4', 'p');
-                                    doc.addImage(canvasImg, 'JPEG', 10, 140, 190, 120, '', 'FAST');
-                                }
-                            }]
-                        });
+                        //GRFICO UMIDITÀ
+                        //new Chart(document.getElementById('chart-container').children.item(1), {
+                        //    type: 'line',
+                        //    data: aUmidità,
+                        //    options: {
+                        //        animation: false,
+                        //        title: {
+                        //            display: true,
+                        //            text: 'Misurazioni Stanza Donazioni',
+                        //        },
+                        //        scales: {
+                        //            yAxes: [
+                        //                {
+                        //                    scaleLabel: {
+                        //                        display: true,
+                        //                        labelString: 'Umidità'
+                        //                    },
+                        //                    ticks: {
+                        //                        reverse: true,
+                        //                        beginAtZero: false
+                        //                    }
+                        //                }
+                        //            ],
+                        //            xAxes: [{
+                        //                type: 'time',
+                        //                scaleLabel: {
+                        //                    display: true,
+                        //                    labelString: 'Data e ora'
+                        //                },
+                        //            }]
+                        //        }
+                        //    },
+                        //    plugins: [{
+                        //        afterDraw: async function (chart, options) {
+                        //            const canvasImg = chart.canvas.toDataURL();
+                        //            console.log(canvasImg);
+                        //            //doc.addPage('a4', 'p');
+                        //            doc.addImage(canvasImg, 'JPEG', 10, 140, 190, 120, '', 'FAST');
+                        //        }
+                        //    }]
+                        //});
                         //TABELLA
                         //doc.autoTable({ html: '#table-container>table' });
                         window.open(URL.createObjectURL(doc.output("blob")));
@@ -376,7 +407,8 @@
                     then(bool => bool ? localStorage.removeItem(localKey) : null);
             };
     </script>
-    <script src="~/js/Chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js" integrity="sha512-Wt1bJGtlnMtGP0dqNFH1xlkLBNpEodaiQ8ZN5JLA5wpc1sUlk/O5uuOMNgvzddzkpvZ9GLyYNa8w2s7rqiTk5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="~/js/jspdf.min.js"></script>
     <script src="~/js/jspdf.plugin.autotable.min.js"></script>
 }

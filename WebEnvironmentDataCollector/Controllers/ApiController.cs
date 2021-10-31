@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -76,6 +77,7 @@ namespace WebEnvironmentDataCollector.Controllers
         [HttpPost("Json")]
         public IActionResult Json([FromBody] List<DataMap> fromJson)
         {
+            //db.GetCollection<BsonDocument>("Log").InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", "Salvataggio Batch JSON" }, { "documento", fromJson.ToJson(mongo.JWS) } });
             fromJson.ForEach(x => mongo.SaveData(x.ConvertForDB()));
 
             return Ok(true);
