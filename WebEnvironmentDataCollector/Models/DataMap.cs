@@ -181,11 +181,22 @@ namespace WebEnvironmentDataCollector.Models
         [JsonIgnore]
         public string Ch2_Unit { get; private set; }
 
+        [BsonIgnore, JsonIgnore]
+        private IFormatProvider NumberFormat
+        {
+            get
+            {
+                CultureInfo ci = new CultureInfo("it-IT");
+                ci.NumberFormat.NumberDecimalSeparator = ".";
+                return ci;
+            }
+        }
+
         public string Umidita
         {
             get
             {
-                return MetaField.Ch1_Value.ToString(CultureInfo.GetCultureInfo("it-IT")) + Ch1_Unit;
+                return MetaField.Ch1_Value.ToString(NumberFormat) + Ch1_Unit;
             }
         }
 
@@ -193,7 +204,7 @@ namespace WebEnvironmentDataCollector.Models
         {
             get
             {
-                return MetaField.Ch2_Value.ToString(CultureInfo.GetCultureInfo("it-IT")) + Ch2_Unit;
+                return MetaField.Ch2_Value.ToString(NumberFormat) + Ch2_Unit;
             }
         }
 

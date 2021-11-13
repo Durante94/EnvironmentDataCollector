@@ -72,8 +72,8 @@
         </table>
     </div>
     <div id="chart-container">
-        <canvas width="400" height="100"><p>temp</p></canvas><!--class="d-none"-->
-        <canvas width="400" height="100"><p>temp</p></canvas><!--class="d-none"-->
+        <canvas class="d-none" width="400" height="100"><p>temp</p></canvas>
+        <canvas class="d-none" width="400" height="100"><p>temp</p></canvas>
     </div>
 </div>
 
@@ -198,131 +198,83 @@
                 getFromRemote(getFilters())
                     .then(json => {
                         render(json);
-                        const doc = new jsPDF('p', 'mm', 'a4'),
+                        const doc = new jsPDF('l', 'mm', 'a4'),
+                            dataLabels = [],
                             aTemperature = [],
                             aUmidità = [];
+                        let tempMU = '', humidMU = '';
 
-                        //for (let i = 0; i < json.length; i++) {
-                        //    console.log(json[i].temperatura, json[i].temperatura.substring(0, json[i].temperatura.length - 2));
-                        //    aTemperature.push({ 'x': new Date(json[i].dataRilevazione).toLocaleString("it-IT", localeOpt), 'y': parseFloat(json[i].temperatura.substring(0, json[i].temperatura.length - 2)) });
+                        for (let i = 0; i < json.length; i++) {
+                            const formattedData = new Date(json[i].dataRilevazione).toLocaleString("it-IT", localeOpt);
+                            dataLabels.push(formattedData);
 
-                        //    console.log(json[i].umidita, json[i].umidita.substring(0, json[i].temperatura.length - 2));
-                        //    aUmidità.push({ 'x': new Date(json[i].dataRilevazione).toLocaleString("it-IT", localeOpt), 'y': parseFloat(json[i].umidita.substring(0, json[i].temperatura.length - 2)) });
-                        //}
-                        aTemperature.push({ 'x': new Date("2021-10-26T17:00:00Z"), 'y': 0 },
-                            { 'x': new Date("2021-10-26T17:01:00Z"), 'y': 2 },
-                            { 'x': new Date("2021-10-26T17:02:00Z"), 'y': 4 },
-                            { 'x': new Date("2021-10-26T17:03:00Z"), 'y': 6 },
-                            { 'x': new Date("2021-10-26T17:04:00Z"), 'y': 8 },
-                            { 'x': new Date("2021-10-26T17:05:00Z"), 'y': 10 },
-                            { 'x': new Date("2021-10-26T17:06:00Z"), 'y': 12 },
-                            { 'x': new Date("2021-10-26T17:07:00Z"), 'y': 14 });
-                        aUmidità.push({ 'x': new Date("2021-10-26T17:00:00Z"), 'y': 0 },
-                            { 'x': new Date("2021-10-26T17:01:00Z"), 'y': 2 },
-                            { 'x': new Date("2021-10-26T17:02:00Z"), 'y': 4 },
-                            { 'x': new Date("2021-10-26T17:03:00Z"), 'y': 6 },
-                            { 'x': new Date("2021-10-26T17:04:00Z"), 'y': 8 },
-                            { 'x': new Date("2021-10-26T17:05:00Z"), 'y': 10 },
-                            { 'x': new Date("2021-10-26T17:06:00Z"), 'y': 12 },
-                            { 'x': new Date("2021-10-26T17:07:00Z"), 'y': 14 });
+                            aTemperature.push({ 'x': formattedData, 'y': parseFloat(json[i].temperatura.substring(0, json[i].temperatura.length - 2)) });
+                            if (tempMU.length == 0)
+                                tempMU = json[i].temperatura.substr(-2);
 
+                            aUmidità.push({ 'x': formattedData, 'y': parseFloat(json[i].umidita.substring(0, json[i].temperatura.length - 2)) });
+                            if (humidMU.length == 0)
+                                humidMU = json[i].umidita.substr(-3);
+                        }
 
-                        //GRAFICI
-                        new Chart(document.getElementById('chart-container').children.item(0), {
-                            type: 'line',
-                            data: aTemperature,
-                            options: {
-                                animation: false,
-                                title: {
-                                    display: true,
-                                    text: 'Misurazioni Stanza Donazioni',
-                                },
-                                scales: {
-                                    //yAxes: [
-                                    //    {
-                                    //        scaleLabel: {
-                                    //            display: true,
-                                    //            labelString: 'Temperatura'
-                                    //        },
-                                    //        ticks: {
-                                    //            reverse: true,
-                                    //            beginAtZero: false
-                                    //        }
-                                    //    }
-                                    //],
-                                    //xAxes: [{
-                                    //    type: 'time',
-                                    //    scaleLabel: {
-                                    //        display: true,
-                                    //        labelString: 'Data e ora'
-                                    //    },
-                                    //}]
-                                    x: {
-                                        type: 'timeseries',
-                                        time: {
-                                            unit: 'minutes'
-                                        }
-                                    },
-                                    y: {
-                                        beginAtZero: false
-                                    }
-                                }
-                            },
-                            plugins: [{
-                                afterDraw: async function (chart, options) {
-                                    const canvasImg = chart.canvas.toDataURL();
-                                    console.log(canvasImg);
-                                    //doc.addPage('a4', 'p');
-                                    doc.addImage(canvasImg, 'JPEG', 10, 10, 190, 120, '', 'FAST');
-                                }
-                            }]
-                        });
+                        //GRAFICO TEMPERATURA
+                        drawChartInPdf(document.getElementById('chart-container').children.item(0), dataLabels, aTemperature, 'Temperature ' + tempMU, doc, true);
                         //GRFICO UMIDITÀ
-                        //new Chart(document.getElementById('chart-container').children.item(1), {
-                        //    type: 'line',
-                        //    data: aUmidità,
-                        //    options: {
-                        //        animation: false,
-                        //        title: {
-                        //            display: true,
-                        //            text: 'Misurazioni Stanza Donazioni',
-                        //        },
-                        //        scales: {
-                        //            yAxes: [
-                        //                {
-                        //                    scaleLabel: {
-                        //                        display: true,
-                        //                        labelString: 'Umidità'
-                        //                    },
-                        //                    ticks: {
-                        //                        reverse: true,
-                        //                        beginAtZero: false
-                        //                    }
-                        //                }
-                        //            ],
-                        //            xAxes: [{
-                        //                type: 'time',
-                        //                scaleLabel: {
-                        //                    display: true,
-                        //                    labelString: 'Data e ora'
-                        //                },
-                        //            }]
-                        //        }
-                        //    },
-                        //    plugins: [{
-                        //        afterDraw: async function (chart, options) {
-                        //            const canvasImg = chart.canvas.toDataURL();
-                        //            console.log(canvasImg);
-                        //            //doc.addPage('a4', 'p');
-                        //            doc.addImage(canvasImg, 'JPEG', 10, 140, 190, 120, '', 'FAST');
-                        //        }
-                        //    }]
-                        //});
+                        drawChartInPdf(document.getElementById('chart-container').children.item(1), dataLabels, aUmidità, 'Umidità ' + humidMU, doc, false); //ULTIMO GRAFICO DA PRINTARE, GLI ALTRI FOGLI LI VOLGIO PORTRAIT
                         //TABELLA
-                        //doc.autoTable({ html: '#table-container>table' });
+                        doc.autoTable({ html: '#table-container>table' });
                         window.open(URL.createObjectURL(doc.output("blob")));
                     })
                     .then(() => btn.lastElementChild.remove());
+            },
+            //GESTIONE GRAFICI
+            drawChartInPdf = (canvas, dataLabels, dataset, mainLabel, pdfDoc, landscape) => {
+                new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: dataLabels,
+                        datasets: [{
+                            label: mainLabel,
+                            data: dataset,
+                            backgroundColor: ['rgb(54, 162, 235)'],
+                            borderColor: ['rgb(221 11 11)'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        aspectRatio: 297 / 210, //ASPECT RATIO A4 LANDSCAPE
+                        animation: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Misurazioni Stanza Donazioni',
+                            }
+                        },
+                        scales: {
+                            yAxes: [
+                                {
+                                    ticks: {
+                                        beginAtZero: true
+                                    }
+                                }
+                            ],
+                            xAxes: [{
+                                type: 'time',
+                                time: {
+                                    unit: 'minute',
+                                }
+                            }],
+                        }
+                    },
+                    plugins: [{
+                        afterDraw: async function (chart, options) {
+                            const canvasImg = chart.canvas.toDataURL();
+                            pdfDoc.addImage(canvasImg, 'JPEG', 10, 10, 277, 190, '', 'SLOW');
+                            pdfDoc.addPage('a4', landscape ? 'l' : 'p');
+                            chart.destroy();
+                        }
+                    }]
+                });
             },
             //CARICAMENTO DEI FILE CON I DATI DA SALVARE
             upload = (btn) => {
