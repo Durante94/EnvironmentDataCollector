@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace WebEnvironmentDataCollector.Pages
 {
-    //[Authorize]
+    [Authorize]
     public class IndexModel : PageModel
     {
         private readonly ILogger<IndexModel> _logger;

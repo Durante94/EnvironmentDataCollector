@@ -344,7 +344,7 @@
             uploadJson = () => {
                 if (localStorage.getItem(localKey) == null) return;
 
-                fetch(srvUrl + 'Api', {
+                fetch(srvUrl + 'Api/Json', {
                     method: 'POST',
                     body: localStorage.getItem(localKey)
                 }).then(resp => {

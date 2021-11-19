@@ -11,30 +11,24 @@ namespace WebEnvironmentDataCollector.Util
 {
     public class MongoHandler
     {
-        private static readonly string collName = "EnvironmentData";
+        private static readonly string collName = "EnvironmentData",
+            logCollName = "Log";
 
-        private IMongoClient dbClient;
+        private readonly IMongoClient client;
 
-        private IMongoDatabase db;
-
-        public MongoHandler()
-        {
-        }
-
-        internal void Init(string mongoHost, string mongoUser, string mongoPswd, string mongoDB)
+        public MongoHandler(/*string mongoHost, string mongoUser, string mongoPswd, string mongoDB*/)
         {
             // FORMATO STRINGA DI CONNESSIONE MONGO DB:  mongodb://{NOME UTENTE}:{PASSWORD}@{HOST}/{DB A CUI AUTENTICARSI}?{...OPZIONI DI CONNESSIONE}
             string mongoConn = "mongodb://localhost:27017";//$"mongodb://{mongoUser}:{mongoPswd}@{mongoHost}/{mongoDB}";
-            dbClient = new MongoClient(mongoConn);
-            db = dbClient.GetDatabase("test");
+            client = new MongoClient(mongoConn);
         }
 
         private IMongoDatabase GetDb(string dbName)
         {
             IMongoDatabase db;
-            if (!dbClient.ListDatabaseNames().ToList().Contains(dbName))
+            if (!client.ListDatabaseNames().ToList().Contains(dbName))
             {
-                db = dbClient.GetDatabase(dbName);
+                db = client.GetDatabase(dbName);
                 db.CreateCollection(collName, new CreateCollectionOptions
                 {
                     TimeSeriesOptions = new TimeSeriesOptions(DataDb.GetTimeSeriesField(), DataDb.metaFieldName)
@@ -42,7 +36,7 @@ namespace WebEnvironmentDataCollector.Util
                 db.GetCollection<DataDb>(collName).Indexes.CreateOne(new CreateIndexModel<DataDb>(DataDb.GetIndex()));
             }
             else
-                db = dbClient.GetDatabase(dbName);
+                db = client.GetDatabase(dbName);
 
             return db;
         }
@@ -55,16 +49,27 @@ namespace WebEnvironmentDataCollector.Util
             }
         }
 
-        internal void SaveData(DataDb document)
+        internal string LogCollName
         {
+            get
+            {
+                return logCollName;
+            }
+        }
+
+        internal void SaveData(DataDb document, string userDb)
+        {
+            IMongoDatabase db = GetDb(userDb);
+
             if (db.GetCollection<DataDb>(collName).Find(x => x.DataRilevazione == document.DataRilevazione).CountDocuments() > 0) return;
 
             db.GetCollection<DataDb>(collName).InsertOne(document);
         }
 
-        internal List<DataDb> GetData(BsonDocument filter)
+        internal List<DataDb> GetData(BsonDocument filter, string userDb)
         {
-            db.GetCollection<BsonDocument>("Log").InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", "Ricerca" }, { "documento", filter.ToJson(JWS) } });
+            IMongoDatabase db = GetDb(userDb);
+            db.GetCollection<BsonDocument>(logCollName).InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", "Ricerca" }, { "documento", filter.ToJson(JWS) } });
             return db.GetCollection<DataDb>(collName).Find(filter).Sort(Builders<DataDb>.Sort.Ascending(x => x.DataRilevazione)).ToList();
         }
     }

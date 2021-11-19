@@ -15,7 +15,7 @@ using WebEnvironmentDataCollector.Util;
 
 namespace WebEnvironmentDataCollector.Controllers
 {
-    [Route("[controller]"), ApiController/*, Authorize*/]
+    [Route("[controller]"), ApiController, Authorize]
     public class ApiController : ControllerBase
     {
         private readonly MongoHandler mongo;
@@ -28,20 +28,19 @@ namespace WebEnvironmentDataCollector.Controllers
 
             //aggiungere interrogazione al db sql per avere i dati di connessione al mongo relativi all'utente
             this.mongo = mongo;
-            this.mongo.Init("", "", "", "");
             this.fileHandler = fileHandler;
-            //fileFolder = Path.Combine(tmp, User.Identity.Name);
+            fileFolder = Path.Combine(tmp, User.Identity.Name);
 
             if (!Directory.Exists(tmp))
                 Directory.CreateDirectory(tmp);
-            //if (!Directory.Exists(fileFolder))
-            //    Directory.CreateDirectory(fileFolder);
+            if (!Directory.Exists(fileFolder))
+                Directory.CreateDirectory(fileFolder);
         }
 
         [HttpGet]
         public IActionResult Get(string jsonFilters)
         {
-            return Ok(mongo.GetData(Newtonsoft.Json.JsonConvert.DeserializeObject<Filters>(jsonFilters).GetFiletrs()));
+            return Ok(mongo.GetData(Newtonsoft.Json.JsonConvert.DeserializeObject<Filters>(jsonFilters).GetFiletrs(), User.Identity.Name));
         }
 
         [HttpPost]
@@ -58,7 +57,7 @@ namespace WebEnvironmentDataCollector.Controllers
 
             foreach (IFormFile file in Request.Form.Files)
             {
-                if (fileHandler.SetFile(file, mongo))
+                if (fileHandler.SetFile(file, mongo, User.Identity.Name))
                     fileErrors.Add(file.FileName);
                 else
                     file.CopyToAsync(
@@ -77,8 +76,8 @@ namespace WebEnvironmentDataCollector.Controllers
         [HttpPost("Json")]
         public IActionResult Json([FromBody] List<DataMap> fromJson)
         {
-            //db.GetCollection<BsonDocument>("Log").InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", "Salvataggio Batch JSON" }, { "documento", fromJson.ToJson(mongo.JWS) } });
-            fromJson.ForEach(x => mongo.SaveData(x.ConvertForDB()));
+            //db.GetCollection<BsonDocument>(mongo.LogCollName).InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", "Salvataggio Batch JSON" }, { "documento", fromJson.ToJson(mongo.JWS) } });
+            fromJson.ForEach(x => mongo.SaveData(x.ConvertForDB(), User.Identity.Name));
 
             return Ok(true);
         }

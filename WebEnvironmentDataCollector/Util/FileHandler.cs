@@ -14,7 +14,7 @@ namespace WebEnvironmentDataCollector.Util
     {
         public FileHandler() { }
 
-        internal bool SetFile(Microsoft.AspNetCore.Http.IFormFile file, MongoHandler mongo)
+        internal bool SetFile(Microsoft.AspNetCore.Http.IFormFile file, MongoHandler mongo, string userName)
         //RITORNO TRUE IN CASO DI PROBLEMI
         {
             int pos = file.FileName.LastIndexOf('.');
@@ -26,7 +26,7 @@ namespace WebEnvironmentDataCollector.Util
             if (string.Compare("xlsx", extension, true) == 0)
             {
                 XSSFWorkbook xssfwb = new XSSFWorkbook(file.OpenReadStream());
-                ExcelFileHandler(xssfwb.GetSheetAt(0), mongo);
+                ExcelFileHandler(xssfwb.GetSheetAt(0), mongo, userName);
             }
             else if (string.Compare("xls", extension, true) == 0)
             {
@@ -34,22 +34,22 @@ namespace WebEnvironmentDataCollector.Util
                 try
                 {
                     hssfwb = new HSSFWorkbook(file.OpenReadStream());
-                    ExcelFileHandler(hssfwb.GetSheetAt(0), mongo);
+                    ExcelFileHandler(hssfwb.GetSheetAt(0), mongo, userName);
                 }
                 catch (NPOI.POIFS.FileSystem.NotOLE2FileException)
                 {
-                    CSVFileHandler(new StreamReader(file.OpenReadStream()), mongo);
+                    CSVFileHandler(new StreamReader(file.OpenReadStream()), mongo, userName);
                 }
             }
             else if (string.Compare("csv", extension, true) == 0)
-                CSVFileHandler(new StreamReader(file.OpenReadStream()), mongo);
+                CSVFileHandler(new StreamReader(file.OpenReadStream()), mongo, userName);
             else
                 return true;
 
             return false;
         }
 
-        private void ExcelFileHandler(ISheet sheet, MongoHandler mongo)
+        private void ExcelFileHandler(ISheet sheet, MongoHandler mongo, string userName)
         {
             IRow row = sheet.GetRow(sheet.FirstRowNum);
             string[] header = new string[row.PhysicalNumberOfCells];
@@ -65,11 +65,11 @@ namespace WebEnvironmentDataCollector.Util
             for (int i = sheet.FirstRowNum + 1; i <= sheet.LastRowNum; i++)
             {
                 DataMap parsed = DataMap.CreateFromExcelRow(header, sheet.GetRow(i));
-                mongo.SaveData(parsed.ConvertForDB());
+                mongo.SaveData(parsed.ConvertForDB(), userName);
             }
         }
 
-        private void CSVFileHandler(StreamReader sr, MongoHandler mongo)
+        private void CSVFileHandler(StreamReader sr, MongoHandler mongo, string userName)
         {
             string csvLine = sr.ReadLine();
             string[] header = csvLine.Split('\t');
@@ -78,7 +78,7 @@ namespace WebEnvironmentDataCollector.Util
             {
                 csvLine = sr.ReadLine();
                 DataMap parsed = DataMap.CreateFromCSVRow(header, csvLine.Split('\t'));
-                mongo.SaveData(parsed.ConvertForDB());
+                mongo.SaveData(parsed.ConvertForDB(), userName);
             }
         }
     }

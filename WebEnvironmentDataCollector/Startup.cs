@@ -33,6 +33,7 @@ namespace WebEnvironmentDataCollector
                 options.UseSqlServer(
                     Configuration.GetConnectionString("DefaultConnection")));
             services.AddDefaultIdentity<AppUser>(options => options.SignIn.RequireConfirmedAccount = true)
+                .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             services.AddControllersWithViews();
             services.AddRazorPages().AddNewtonsoftJson();
@@ -55,6 +56,9 @@ namespace WebEnvironmentDataCollector
                 options.User.AllowedUserNameCharacters =
                 "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
                 options.User.RequireUniqueEmail = true;
+
+                options.SignIn.RequireConfirmedAccount = true;
+                options.SignIn.RequireConfirmedEmail = true;
             });
 
             services.ConfigureApplicationCookie(options =>
@@ -68,7 +72,7 @@ namespace WebEnvironmentDataCollector
                 options.SlidingExpiration = true;
             });
 
-            services.AddScoped<MongoHandler>()
+            services.AddSingleton<MongoHandler>()
                 .AddScoped<FileHandler>();
 
             //codice aggiunto (insieme al pacchetto nuget AddRazorRuntimeCompilation) per permettere di vedere le modifiche ai file cshmtl senza ricompilare
@@ -80,7 +84,7 @@ namespace WebEnvironmentDataCollector
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             if (env.IsDevelopment())
             {
@@ -107,6 +111,54 @@ namespace WebEnvironmentDataCollector
                 endpoints.MapRazorPages();
                 endpoints.MapControllers();
             });
+
+            /// DEFAULT USERS AND ROLES
+            Task<bool> roleCheck = roleManager.RoleExistsAsync("WebAdmin");
+
+            if (!roleCheck.Result)
+            {
+                roleManager.CreateAsync(new IdentityRole("WebAdmin")).Wait();
+            }
+
+            Task<AppUser> userSearch = userManager.FindByNameAsync("Fabrizio");
+            Task<IdentityResult> identityResult;
+            if (userSearch.Result == null)
+            {
+                AppUser user = new AppUser("Fabrizio")
+                {
+                    Email = "fabrizio.durante@coservizi.it"
+                };
+
+                identityResult = userManager.CreateAsync(user, "Envr10nm3ntal#*");
+
+                if (identityResult.Result.Succeeded)
+                    userManager.AddToRoleAsync(user, "WebAdmin").Wait();
+            }
+
+            userSearch = userManager.FindByNameAsync("Andreino");
+            if (userSearch.Result == null)
+            {
+                AppUser user = new AppUser("Andreino")
+                {
+                    Email = "durante@coservizi.it"
+                };
+
+                identityResult = userManager.CreateAsync(user, "Envr10nm3ntal#*");
+
+                if (identityResult.Result.Succeeded)
+                    userManager.AddToRoleAsync(user, "WebAdmin").Wait();
+            }
+
+            userSearch = userManager.FindByNameAsync("TestUsr");
+            if (userSearch.Result == null)
+            {
+                AppUser user = new AppUser("TestUsr")
+                {
+                    Email = "test.env.coll@mailnesia.it"
+                };
+
+                userManager.CreateAsync(user, "TestEnv1!").Wait();
+            }
         }
     }
 }
