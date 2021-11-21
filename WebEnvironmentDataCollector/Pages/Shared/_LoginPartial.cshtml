@@ -12,6 +12,9 @@
         @if (User.IsInRole("WebAdmin"))
         {
             <li class="nav-item">
+                <a class="nav-link text-dark" asp-area="" asp-page="/Reserved">Gestione utenti</a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">Registra nuovo Utente</a>
             </li>
         }

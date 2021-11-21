@@ -54,11 +54,11 @@ namespace WebEnvironmentDataCollector
 
                 // User settings.
                 options.User.AllowedUserNameCharacters =
-                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+?!";
                 options.User.RequireUniqueEmail = true;
 
-                options.SignIn.RequireConfirmedAccount = true;
-                options.SignIn.RequireConfirmedEmail = true;
+                options.SignIn.RequireConfirmedAccount = false;//true;
+                options.SignIn.RequireConfirmedEmail = false;//true;
             });
 
             services.ConfigureApplicationCookie(options =>
@@ -70,6 +70,12 @@ namespace WebEnvironmentDataCollector
                 options.LoginPath = "/Identity/Account/Login";
                 options.AccessDeniedPath = "/Identity/Account/AccessDenied";
                 options.SlidingExpiration = true;
+            });
+
+            services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(20);
+                options.Cookie.HttpOnly = true;
             });
 
             services.AddSingleton<MongoHandler>()

@@ -20,21 +20,18 @@ namespace WebEnvironmentDataCollector.Controllers
     {
         private readonly MongoHandler mongo;
         private readonly FileHandler fileHandler;
-        private readonly string fileFolder;
+        private readonly string fileFolderRoot;
 
         public ApiController(MongoHandler mongo, FileHandler fileHandler, IWebHostEnvironment environment)
         {
-            string tmp = Path.Combine(environment.WebRootPath, "Uploaded");
 
             //aggiungere interrogazione al db sql per avere i dati di connessione al mongo relativi all'utente
             this.mongo = mongo;
             this.fileHandler = fileHandler;
-            fileFolder = Path.Combine(tmp, User.Identity.Name);
+            fileFolderRoot = Path.Combine(environment.WebRootPath, "Uploaded");
 
-            if (!Directory.Exists(tmp))
-                Directory.CreateDirectory(tmp);
-            if (!Directory.Exists(fileFolder))
-                Directory.CreateDirectory(fileFolder);
+            if (!Directory.Exists(fileFolderRoot))
+                Directory.CreateDirectory(fileFolderRoot);
         }
 
         [HttpGet]
@@ -54,16 +51,22 @@ namespace WebEnvironmentDataCollector.Controllers
                 });
 
             List<string> fileErrors = new List<string>();
+            string fileFolder = Path.Combine(fileFolderRoot, User.Identity.Name);
+
+            if (!Directory.Exists(fileFolder))
+                Directory.CreateDirectory(fileFolder);
 
             foreach (IFormFile file in Request.Form.Files)
             {
+                string fileName = DateTime.Now.ToString("yyyyMMddHHmmssff") + ".csv";
                 if (fileHandler.SetFile(file, mongo, User.Identity.Name))
                     fileErrors.Add(file.FileName);
                 else
-                    file.CopyToAsync(
-                        new FileStream(Path.Combine(fileFolder, DateTime.Now.ToString("yyyyMMddHHmmssff") + ".csv"),
-                        FileMode.CreateNew, FileAccess.Write)
-                     );
+                {
+                    string filePath = Path.Combine(fileFolder, fileName);
+                    file.CopyToAsync(new FileStream(filePath, FileMode.CreateNew, FileAccess.Write));
+                    mongo.LogOperation($"Salvataggio file {fileName} riuscito", filePath, User.Identity.Name);
+                }
             }
 
             return Ok(new
@@ -76,7 +79,7 @@ namespace WebEnvironmentDataCollector.Controllers
         [HttpPost("Json")]
         public IActionResult Json([FromBody] List<DataMap> fromJson)
         {
-            //db.GetCollection<BsonDocument>(mongo.LogCollName).InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", "Salvataggio Batch JSON" }, { "documento", fromJson.ToJson(mongo.JWS) } });
+            mongo.LogOperation("Salvataggio Batch JSON", fromJson.ToJson(mongo.JWS), User.Identity.Name);
             fromJson.ForEach(x => mongo.SaveData(x.ConvertForDB(), User.Identity.Name));
 
             return Ok(true);

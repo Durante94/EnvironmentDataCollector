@@ -49,12 +49,9 @@ namespace WebEnvironmentDataCollector.Util
             }
         }
 
-        internal string LogCollName
+        internal void LogOperation(string operation, string serializedObj, string userDb)
         {
-            get
-            {
-                return logCollName;
-            }
+            GetDb(userDb).GetCollection<BsonDocument>(logCollName).InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", operation }, { "documento", serializedObj } });
         }
 
         internal void SaveData(DataDb document, string userDb)
