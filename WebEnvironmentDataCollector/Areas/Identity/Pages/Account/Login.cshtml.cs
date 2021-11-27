@@ -22,7 +22,7 @@ namespace WebEnvironmentDataCollector.Areas.Identity.Pages.Account
         private readonly SignInManager<AppUser> _signInManager;
         private readonly ILogger<LoginModel> _logger;
 
-        public LoginModel(SignInManager<AppUser> signInManager, 
+        public LoginModel(SignInManager<AppUser> signInManager,
             ILogger<LoginModel> logger,
             UserManager<AppUser> userManager)
         {
@@ -82,8 +82,18 @@ namespace WebEnvironmentDataCollector.Areas.Identity.Pages.Account
                 var result = await _signInManager.PasswordSignInAsync(Input.Username, Input.Password, Input.RememberMe, lockoutOnFailure: false);
                 if (result.Succeeded)
                 {
-                    _logger.LogInformation("User logged in.");
-                    return LocalRedirect(returnUrl);
+                    AppUser usr = _userManager.FindByNameAsync(Input.Username).Result;
+                    if (usr.Active)
+                    {
+                        _logger.LogInformation("User logged in.");
+                        return LocalRedirect(returnUrl);
+                    }
+                    else
+                    {
+                        _signInManager.SignOutAsync();
+                        ModelState.AddModelError(string.Empty, "Utente disattivato");
+                        return Page();
+                    }
                 }
                 if (result.RequiresTwoFactor)
                 {

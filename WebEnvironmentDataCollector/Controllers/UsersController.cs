@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using WebEnvironmentDataCollector.Models;
+using WebEnvironmentDataCollector.Util;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -16,9 +18,12 @@ namespace WebEnvironmentDataCollector.Controllers
     public class UsersController : ControllerBase
     {
         private readonly UserManager<AppUser> userManager;
-        public UsersController(UserManager<AppUser> userManager)
+        private readonly MongoHandler mongo;
+
+        public UsersController(UserManager<AppUser> userManager, MongoHandler mongo)
         {
             this.userManager = userManager;
+            this.mongo = mongo;
         }
 
         [HttpGet]
@@ -27,16 +32,30 @@ namespace WebEnvironmentDataCollector.Controllers
             return Ok(userManager.Users.Select(x => new { x.Id, x.UserName, x.Email, x.Active, x.Motivo, locked = userManager.IsLockedOutAsync(x).Result }));
         }
 
-        // GET api/<UsersController>/5
-        //[HttpGet("{user}")]
-        //public IActionResult Get(string user)
-        //{
-        //    return "value";
-        //}
+        [HttpGet("Log")]
+        public IActionResult Log(string userId, string from, string to)
+        {
+            AppUser user = userManager.FindByIdAsync(userId).Result;
 
-        // POST api/<UsersController>
-        [HttpPost]
-        public IActionResult Post([FromBody] JObject data)
+            if (user == null) return Ok();
+
+            DateTime? da = null, a = null;
+            CultureInfo cu = CultureInfo.GetCultureInfo("it-IT");
+
+            if (DateTime.TryParseExact(from, "dd/MM/yyyy HH:mm:ss", cu, DateTimeStyles.None, out DateTime tmp))
+                da = new DateTime(tmp.Ticks);
+            if (DateTime.TryParseExact(to, "dd/MM/yyyy HH:mm:ss", cu, DateTimeStyles.None, out tmp))
+                a = new DateTime(tmp.Ticks);
+
+            return Content(
+                mongo.GetUsrLog(da, a, user.UserName),
+                "application/json",
+                System.Text.Encoding.UTF8
+            );
+        }
+
+        [HttpPost("Activate")]
+        public IActionResult Activate([FromBody] JObject data)
         {
             string motivo = string.Empty;
 
@@ -54,16 +73,21 @@ namespace WebEnvironmentDataCollector.Controllers
             return Ok(userManager.UpdateAsync(usr).Result.Succeeded);
         }
 
-        // PUT api/<UsersController>/5
-        //[HttpPut("{id}")]
-        //public void Put(int id, [FromBody] string value)
-        //{
-        //}
+        [HttpPost("Unlock")]
+        public IActionResult Post([FromBody] JObject id)
+        {
+            string usrId = string.Empty;
 
-        // DELETE api/<UsersController>/5
-        //[HttpDelete("{id}")]
-        //public void Delete(int id)
-        //{
-        //}
+            if (id.ContainsKey("id"))
+                usrId = id.GetValue("id").ToString();
+            else
+                return Ok(false);
+
+            AppUser usr = userManager.FindByIdAsync(usrId).Result;
+
+            if (usr == null) return Ok(false);
+
+            return Ok(userManager.SetLockoutEndDateAsync(usr, DateTimeOffset.Now.AddDays(-1)).Result.Succeeded);
+        }
     }
 }

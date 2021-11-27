@@ -8,13 +8,118 @@
     <style>
     </style>
 }
-<div class="row">
-
+<div class="row border-bottom border-dark">
+    <div class="col-2 d-sm-none d-md-block">Id</div>
+    <div class="col-sm-4 col-md-2">Username</div>
+    <div class="col-sm-5 col-md-4 col-lg-3">Email</div>
+    <div class="col-1">Login Bloccato</div>
+    <div class="col-1">Utente Attivo</div>
+    <div class="col-2 d-sm-none d-md-block">Motivo</div>
+    <div class="col-1 d-sm-none d-md-block">Dettagli</div>
 </div>
 
 @section Scripts {
     <script>
-        const srvUrl = '@Url.Content("~")/';
+        const apiUrl = '@Url.Content("~")/Users',
+            togLock = input => {
+                if (!input.dataset.lock) {
+                    fetch(apiUrl + '/Unlock', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ id: `${input.id.substring(6)}` })
+                    }).then(resp => {
+                        if (resp.ok)
+                            return resp.json();
+                        else
+                            throw resp.json();
+                    }).then(json => {
+                        if (json)
+                            input.dataset.lock = true;
+                        else {
+                            input.removeAttribute('checked');
+                            alert("Impossibile sbloccare l'utente");
+                        }
+                    }).catch(json => {
+                        input.removeAttribute('checked');
+                        console.error(json);
+                        alert("Errore");
+                    });
+                } else
+                    input.removeAttribute('checked');
+            },
+            togActive = input => {
+                if (input.dataset.active) {
+                    fetch(apiUrl + '/Activate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ id: `${input.id.substring(6)}`, motivo: '' })
+                    }).then(resp => {
+                        if (resp.ok)
+                            return resp.json();
+                        else
+                            throw resp.json();
+                    }).then(json => {
+                        if (json)
+                            input.dataset.active = false;
+                        else {
+                            input.removeAttribute('checked');
+                            alert("Impossibile bloccare l'utente");
+                        }
+                    }).catch(json => {
+                        input.removeAttribute('checked');
+                        console.error(json);
+                        alert("Errore");
+                    });
+                } else
+                    input.removeAttribute('checked');
+            };
 
+
+        fetch(apiUrl)
+            .then(resp => {
+                if (resp.ok)
+                    return resp.json();
+                else
+                    throw resp.json();
+            }).then(json => {
+                if (!Array.isArray(json)) return;
+
+                let html = '';
+                for (let i = 0; i < json.length; i++) {
+                    html += `<div class="row border-bottom border-dark">
+                                <div class="col-2 d-sm-none d-md-block">${json[i].id}</div>
+                                <div class="col-sm-4 col-md-2">${json[i].userName}</div>
+                                <div class="col-sm-5 col-md-4 col-lg-3">${json[i].email}</div>
+                                <div class="col-1">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="loked-${json[i].id}"${(json[i].locked ? ' checked' : '')} data-lock=${json[i].locked} onchange="togLock(this)" />
+                                        <label class="custom-control-label" for="loked-${json[i].id}"></label>
+                                    </div>
+                                </div>
+                                <div class="col-1">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="active-${json[i].id}"${(json[i].active ? ' checked' : '')} />
+                                        <label class="custom-control-label" for="active-${json[i].id}"></label>
+                                    </div>
+                                </div>
+                                <div class="col-2 d-sm-none d-md-block">${json[i].motivo || ''}</div>
+                                <div class="col-1 d-sm-none d-md-block text-center">
+                                    <svg onclick="console.log('${json[i].id}')" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up-right" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
+                                        <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
+                                    </svg>
+                                </div>
+                            </div>`;
+                }
+
+                document.getElementsByTagName("main")[0].innerHTML = document.getElementsByTagName("main")[0].innerHTML + html;
+            }).catch(json => {
+                alert("Errore, controlla console");
+                console.error(json);
+            })
     </script>
 }

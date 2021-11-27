@@ -49,11 +49,6 @@ namespace WebEnvironmentDataCollector.Util
             }
         }
 
-        internal void LogOperation(string operation, string serializedObj, string userDb)
-        {
-            GetDb(userDb).GetCollection<BsonDocument>(logCollName).InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", operation }, { "documento", serializedObj } });
-        }
-
         internal void SaveData(DataDb document, string userDb)
         {
             IMongoDatabase db = GetDb(userDb);
@@ -68,6 +63,23 @@ namespace WebEnvironmentDataCollector.Util
             IMongoDatabase db = GetDb(userDb);
             db.GetCollection<BsonDocument>(logCollName).InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", "Ricerca" }, { "documento", filter.ToJson(JWS) } });
             return db.GetCollection<DataDb>(collName).Find(filter).Sort(Builders<DataDb>.Sort.Ascending(x => x.DataRilevazione)).ToList();
+        }
+
+        internal void LogOperation(string operation, string serializedObj, string userDb)
+        {
+            GetDb(userDb).GetCollection<BsonDocument>(logCollName).InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", operation }, { "documento", serializedObj } });
+        }
+
+        internal string GetUsrLog(DateTime? from, DateTime? to, string userDb)
+        {
+            FilterDefinition<BsonDocument> filter = Builders<BsonDocument>.Filter.Empty;
+
+            if (from.HasValue)
+                filter &= Builders<BsonDocument>.Filter.Gte("timestamp", from.Value);
+            if (to.HasValue)
+                filter &= Builders<BsonDocument>.Filter.Lte("timestamp", to.Value);
+
+            return GetDb(userDb).GetCollection<BsonDocument>(logCollName).Find(filter).Sort(Builders<BsonDocument>.Sort.Ascending("timestamp")).ToList().ToJson(JWS);
         }
     }
 }
