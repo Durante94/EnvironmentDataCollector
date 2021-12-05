@@ -1,8 +1,6 @@
 ﻿@page
 @model WebEnvironmentDataCollector.Pages.ReservedModel
-@{
-    ViewData["Title"] = "Gestione utenti";
-}
+@{ ViewData["Title"] = "Gestione utenti"; }
 
 @section Styles{
     <style>
@@ -76,6 +74,32 @@
                     });
                 } else
                     input.removeAttribute('checked');
+            },
+            getLog = (userId, from, to) => {
+                fetch(apiUrl + `/Log?userId=${userId}from=${from}to=${to}`)
+                    .then(resp => {
+                        if (resp.ok)
+                            return resp.json();
+                        else
+                            throw resp.json();
+                    })
+                    .then(json => {
+                        let html = '';
+
+                        for (let i = 0; i < json.length; i++) {
+                            html += `<tr>
+                                        <td>${json[i].timestamp}</td>
+                                        <td>${json[i].operazione}</td>
+                                        <td>${json[i].documento}</td>
+                                    </tr>`;
+                        }
+
+                          //incollalo dentro alla modale
+                    })
+                    .catch(json => {
+                        alert("Errore, controlla console");
+                        console.error(json);
+                    });
             };
 
 

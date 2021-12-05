@@ -79,7 +79,7 @@ namespace WebEnvironmentDataCollector.Util
             if (to.HasValue)
                 filter &= Builders<BsonDocument>.Filter.Lte("timestamp", to.Value);
 
-            return GetDb(userDb).GetCollection<BsonDocument>(logCollName).Find(filter).Sort(Builders<BsonDocument>.Sort.Ascending("timestamp")).ToList().ToJson(JWS);
+            return GetDb(userDb).GetCollection<BsonDocument>(logCollName).Find(filter).Sort(Builders<BsonDocument>.Sort.Descending("timestamp")).ToList().ToJson(JWS);
         }
     }
 }
