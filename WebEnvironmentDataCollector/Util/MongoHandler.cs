@@ -16,10 +16,11 @@ namespace WebEnvironmentDataCollector.Util
 
         private readonly IMongoClient client;
 
-        public MongoHandler(/*string mongoHost, string mongoUser, string mongoPswd, string mongoDB*/)
+        public MongoHandler(string mongoHost, string mongoUser, string mongoPswd, string mongoDB)
         {
             // FORMATO STRINGA DI CONNESSIONE MONGO DB:  mongodb://{NOME UTENTE}:{PASSWORD}@{HOST}/{DB A CUI AUTENTICARSI}?{...OPZIONI DI CONNESSIONE}
-            string mongoConn = "mongodb://localhost:27017";//$"mongodb://{mongoUser}:{mongoPswd}@{mongoHost}/{mongoDB}";
+            string mongoConn = $"mongodb://{mongoUser}{(string.IsNullOrEmpty(mongoPswd) ? "" : $":{mongoPswd}@")}{mongoHost}{(string.IsNullOrEmpty(mongoDB) ? "" : "/" + mongoDB)}";
+            //FORMO LA STRINGA COSì PER AVERE COMPATIBILITà CON L'UTILIZZO LOCALE SENZA AUTENTICAZIONE E SUL SERVER CON AUTENTICAZIONE
             client = new MongoClient(mongoConn);
         }
 
@@ -79,7 +80,10 @@ namespace WebEnvironmentDataCollector.Util
             if (to.HasValue)
                 filter &= Builders<BsonDocument>.Filter.Lte("timestamp", to.Value);
 
-            return GetDb(userDb).GetCollection<BsonDocument>(logCollName).Find(filter).Sort(Builders<BsonDocument>.Sort.Ascending("timestamp")).ToList().ToJson(JWS);
+            return GetDb(userDb).GetCollection<BsonDocument>(logCollName).Find(filter)
+                .Sort(Builders<BsonDocument>.Sort.Ascending("timestamp"))
+                .Project(Builders<BsonDocument>.Projection.Exclude("_id"))
+                .ToList().ToJson(JWS);
         }
     }
 }

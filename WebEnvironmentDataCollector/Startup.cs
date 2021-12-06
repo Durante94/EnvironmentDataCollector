@@ -29,9 +29,11 @@ namespace WebEnvironmentDataCollector
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            bool isDev = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
-                    Configuration.GetConnectionString("DefaultConnection")));
+                    Configuration.GetConnectionString(isDev ? "DevelopConnection" : "DefaultConnection")));
             services.AddDefaultIdentity<AppUser>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
@@ -78,11 +80,17 @@ namespace WebEnvironmentDataCollector
                 options.Cookie.HttpOnly = true;
             });
 
-            services.AddSingleton<MongoHandler>()
-                .AddScoped<FileHandler>();
+            services.AddTransient<FileHandler>()
+                .AddSingleton(new MongoHandler(
+                    Configuration.GetConnectionString("MongoHost"),
+                    isDev ? "" : Configuration.GetConnectionString("MongoUser"),
+                    isDev ? "" : Configuration.GetConnectionString("MongoPwd"),
+                    isDev ? "" : Configuration.GetConnectionString("MongoDb")
+                    )
+                );
 
             //codice aggiunto (insieme al pacchetto nuget AddRazorRuntimeCompilation) per permettere di vedere le modifiche ai file cshmtl senza ricompilare
-            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+            if (isDev)
             {
                 services.AddControllersWithViews().AddRazorRuntimeCompilation();
             }
@@ -92,17 +100,17 @@ namespace WebEnvironmentDataCollector
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager)
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-                app.UseDatabaseErrorPage();
-            }
-            else
-            {
-                app.UseExceptionHandler("/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-                app.UseHsts();
-            }
+            //if (env.IsDevelopment())
+            //{
+            app.UseDeveloperExceptionPage();
+            app.UseDatabaseErrorPage();
+            //}
+            //else
+            //{
+            //    app.UseExceptionHandler("/Error");
+            //    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+            //    app.UseHsts();
+            //}
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
