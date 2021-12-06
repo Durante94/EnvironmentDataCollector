@@ -76,8 +76,7 @@ namespace WebEnvironmentDataCollector.Controllers
         [HttpPost("Unlock")]
         public IActionResult Post([FromBody] JObject id)
         {
-            string usrId = string.Empty;
-
+            string usrId;
             if (id.ContainsKey("id"))
                 usrId = id.GetValue("id").ToString();
             else

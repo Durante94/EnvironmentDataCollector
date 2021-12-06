@@ -81,7 +81,7 @@ namespace WebEnvironmentDataCollector.Util
                 filter &= Builders<BsonDocument>.Filter.Lte("timestamp", to.Value);
 
             return GetDb(userDb).GetCollection<BsonDocument>(logCollName).Find(filter)
-                .Sort(Builders<BsonDocument>.Sort.Ascending("timestamp"))
+                .Sort(Builders<BsonDocument>.Sort.Descending("timestamp"))
                 .Project(Builders<BsonDocument>.Projection.Exclude("_id"))
                 .ToList().ToJson(JWS);
         }
