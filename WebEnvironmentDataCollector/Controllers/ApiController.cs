@@ -22,13 +22,13 @@ namespace WebEnvironmentDataCollector.Controllers
         private readonly FileHandler fileHandler;
         private readonly string fileFolderRoot;
 
-        public ApiController(MongoHandler mongo, FileHandler fileHandler, IWebHostEnvironment environment)
+        public ApiController(MongoHandler mongo, FileHandler fileHandler, Microsoft.Extensions.Configuration.IConfiguration config)
         {
 
             //aggiungere interrogazione al db sql per avere i dati di connessione al mongo relativi all'utente
             this.mongo = mongo;
             this.fileHandler = fileHandler;
-            fileFolderRoot = Path.Combine(environment.WebRootPath, "Uploaded");
+            fileFolderRoot = config["UploadPath"];
 
             if (!Directory.Exists(fileFolderRoot))
                 Directory.CreateDirectory(fileFolderRoot);
