@@ -16,46 +16,46 @@
 }
 
 <div class="row">
-    <div class="col-sm-6 col-md-6 col-lg-3 justify-content-around">
-        Carica Dati
-        <input id="file-input" type="file" multiple class="mb-1 form-control-file" />
+    <div class="col-sm-6 col-md-6 justify-content-around">
+        <span class="">Carica Dati</span>
+        <input id="file-input" type="file" multiple class="mb-2 form-control-file" />
         <button class="btn btn-info mb-1" onclick="upload(this)">Upload</button>
     </div>
-    <div class="col-sm-6 col-md-6 col-lg-3 justify-content-around">
-        <button class="btn btn-dark" onclick="search(this)">Cerca</button>
-        <button class="btn btn-dark" onclick="exportPDF(this)">Esporta</button>
-    </div>
-    <div class="col-sm-12 col-md-6 col-lg-6">
-        Filtri Ricerca e Esportazione:
+    <div class="col-sm-12 col-md-6 text-right mb-3">
+        <span class="mb-2">Filtri Ricerca e Esportazione:</span>
         <div id="filters-containers" class="d-flex flex-column">
-            <span class="d-flex flex-row justify-content-end mb-1">
+            <span class="d-flex flex-row justify-content-end mb-2">
                 Da:
-                <input name="Date_From" class="ml-1" type="date" />
-                <!--<input id="from-time" class="ml-1" type="time" />-->
+                <input name="Date_From" class="ml-2" type="date" />
+                <input name="Time_From" class="ml-1" type="time" />
             </span>
-            <span class="d-flex flex-row justify-content-end mb-1">
+            <span class="d-flex flex-row justify-content-end mb-2">
                 A:
-                <input name="Date_To" class="ml-1" type="date" />
-                <!--<input id="to-time" class="ml-1" type="time" />-->
+                <input name="Date_To" class="ml-2" type="date" />
+                <input name="Time_To" class="ml-1" type="time" />
             </span>
-            Temperatura:
-            <span class="d-flex flex-row justify-content-end mb-1">
-                Da:
-                <input name="Temp_From" class="ml-1" type="number" />
-            </span>
-            <span class="d-flex flex-row justify-content-end mb-1">
-                A:
-                <input name="Temp_To" class="ml-1" type="number" />
-            </span>
-            Umidit&aacute;:
-            <span class="d-flex flex-row justify-content-end mb-1">
-                Da:
-                <input name="Humid_From" class="ml-1" type="number" />
-            </span>
-            <span class="d-flex flex-row justify-content-end mb-1">
-                A:
-                <input name="Humid_To" class="ml-1" type="number" />
-            </span>
+            @*Temperatura:
+                <span class="d-flex flex-row justify-content-end mb-1">
+                    Da:
+                    <input name="Temp_From" class="ml-1" type="number" />
+                </span>
+                <span class="d-flex flex-row justify-content-end mb-1">
+                    A:
+                    <input name="Temp_To" class="ml-1" type="number" />
+                </span>
+                Umidit&aacute;:
+                <span class="d-flex flex-row justify-content-end mb-1">
+                    Da:
+                    <input name="Humid_From" class="ml-1" type="number" />
+                </span>
+                <span class="d-flex flex-row justify-content-end mb-1">
+                    A:
+                    <input name="Humid_To" class="ml-1" type="number" />
+                </span>*@
+            <div>
+                <button class="btn btn-dark" onclick="search(this)">Visualizza</button>
+                <button class="btn btn-dark" onclick="exportPDF(this)">Stampa</button>
+            </div>
         </div>
     </div>
     <div id="table-container" class="d-none col-12">
@@ -141,14 +141,24 @@
                     if (filters.hasOwnProperty('Date_From')) {
                         const dateFrom = new Date(filters['Date_From']);
                         dateFrom.setDate(dateFrom.getDate() + 1);
-                        dateFrom.setHours(0, 0, 0, 0);
+
+                        if (filters.hasOwnProperty('Time_From')) {
+                            timeFrom = filters['Time_From'].split(':');
+                            dateFrom.setHours(parseInt(timeFrom[0]), parseInt(timeFrom[1]));
+                        } else
+                            dateFrom.setHours(0, 0, 0, 0);
 
                         if (data < dateFrom) continue;
                     }
                     if (filters.hasOwnProperty('Date_To')) {
                         const dateTo = new Date(filters['Date_To']);
                         dateTo.setDate(dateTo.getDate() + 1);
-                        dateTo.setHours(0, 0, 0, 0);
+
+                        if (filters.hasOwnProperty('Time_To')) {
+                            timeTo = filters['Time_To'].split(':');
+                            dateTo.setHours(parseInt(timeTo[0]), parseInt(timeTo[1]));
+                        } else
+                           dateTo.setHours(0, 0, 0, 0);
 
                         if (data > dateTo) continue;
                     }
@@ -208,19 +218,19 @@
                             const formattedData = new Date(json[i].dataRilevazione).toLocaleString("it-IT", localeOpt);
                             dataLabels.push(formattedData);
 
-                            aTemperature.push({ 'x': formattedData, 'y': parseFloat(json[i].temperatura.substring(0, json[i].temperatura.length - 2)) });
+                            aTemperature.push({ 'x': formattedData, 'y': parseFloat(json[i].temperatura.substring(0, json[i].temperatura.length - 2).replace(',', '.')) });
                             if (tempMU.length == 0)
                                 tempMU = json[i].temperatura.substr(-2);
 
-                            aUmidità.push({ 'x': formattedData, 'y': parseFloat(json[i].umidita.substring(0, json[i].temperatura.length - 2)) });
+                            aUmidità.push({ 'x': formattedData, 'y': parseFloat(json[i].umidita.substring(0, json[i].temperatura.length - 2).replace(',', '.')) });
                             if (humidMU.length == 0)
                                 humidMU = json[i].umidita.substr(-3);
                         }
 
                         //GRAFICO TEMPERATURA
-                        drawChartInPdf(document.getElementById('chart-container').children.item(0), dataLabels, aTemperature, 'Temperature ' + tempMU, doc, true);
+                        drawChartInPdf(document.getElementById('chart-container').children.item(0), dataLabels, aTemperature, 'Temperature ' + tempMU, doc, true, 60);
                         //GRFICO UMIDITÀ
-                        drawChartInPdf(document.getElementById('chart-container').children.item(1), dataLabels, aUmidità, 'Umidità ' + humidMU, doc, false); //ULTIMO GRAFICO DA PRINTARE, GLI ALTRI FOGLI LI VOLGIO PORTRAIT
+                        drawChartInPdf(document.getElementById('chart-container').children.item(1), dataLabels, aUmidità, 'Umidità ' + humidMU, doc, false, 100); //ULTIMO GRAFICO DA PRINTARE, GLI ALTRI FOGLI LI VOLGIO PORTRAIT
                         //TABELLA
                         doc.autoTable({ html: '#table-container>table' });
                         window.open(URL.createObjectURL(doc.output("blob")));
@@ -228,7 +238,7 @@
                     .then(() => btn.lastElementChild.remove());
             },
             //GESTIONE GRAFICI
-            drawChartInPdf = (canvas, dataLabels, dataset, mainLabel, pdfDoc, landscape) => {
+            drawChartInPdf = (canvas, dataLabels, dataset, mainLabel, pdfDoc, landscape, maxYValue) => {
                 new Chart(canvas, {
                     type: 'line',
                     data: {
@@ -251,13 +261,10 @@
                             }
                         },
                         scales: {
-                            yAxes: [
-                                {
-                                    ticks: {
-                                        beginAtZero: true
-                                    }
-                                }
-                            ],
+                            y: {
+                                beginAtZero: true,
+                                max: maxYValue
+                            },
                             xAxes: [{
                                 type: 'time',
                                 time: {

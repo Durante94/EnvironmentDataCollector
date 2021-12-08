@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,7 +30,7 @@ namespace WebEnvironmentDataCollector
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            bool isDev = false; //Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+            bool isDev = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
 
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
@@ -81,6 +82,16 @@ namespace WebEnvironmentDataCollector
             });
 
             services.AddTransient<FileHandler>()
+                .AddTransient<IEmailService, EmailService>(opt =>
+                {
+                    IConfigurationSection smtpSettings = Configuration.GetSection("SMTPSettings");
+                    return new EmailService(
+                         smtpSettings.GetValue<string>("SmtpHost"),
+                         smtpSettings.GetValue<int>("SmtpPort"),
+                         smtpSettings.GetValue<string>("SmtpPass"),
+                         smtpSettings.GetValue<string>("SmtpUser")
+                     );
+                })
                 .AddSingleton(new MongoHandler(
                     Configuration.GetConnectionString("MongoHost"),
                     isDev ? "" : Configuration.GetConnectionString("MongoUser"),
@@ -173,7 +184,7 @@ namespace WebEnvironmentDataCollector
                     Email = "test.env.coll@mailnesia.it"
                 };
 
-                userManager.CreateAsync(user, "TestEnv1!").Wait();
+                userManager.CreateAsync(user, "").Wait();
             }
         }
     }

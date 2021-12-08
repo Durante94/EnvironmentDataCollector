@@ -14,6 +14,8 @@ namespace WebEnvironmentDataCollector.Models
 
         private DateTime date_From, date_To;
 
+        private TimeSpan time_From, time_To;
+
         private double temp_From, temp_To, humid_From, humid_To;
 
         public DateTime Date_From
@@ -32,6 +34,23 @@ namespace WebEnvironmentDataCollector.Models
             {
                 date_to_flag = true;
                 date_To = value;
+            }
+        }
+
+        public string Time_From
+        {
+            set
+            {
+                time_From = SetTime(value);
+            }
+        }
+
+        [To]
+        public string Time_To
+        {
+            set
+            {
+                time_To = SetTime(value);
             }
         }
 
@@ -79,6 +98,9 @@ namespace WebEnvironmentDataCollector.Models
             date_From = new DateTime();
             date_To = new DateTime();
 
+            time_From = TimeSpan.Zero;
+            time_To = TimeSpan.Zero;
+
             date_from_flag = false;
             date_to_flag = false;
             temp_from_flag = false;
@@ -87,15 +109,23 @@ namespace WebEnvironmentDataCollector.Models
             humid_to_flag = false;
         }
 
+        private TimeSpan SetTime(string time)
+        {
+            string[] aTime = time.Split(':');
+            if (aTime.Length != 2) return TimeSpan.Zero;
+
+            return new TimeSpan(int.Parse(aTime[0]), int.Parse(aTime[1]), 0);
+        }
+
         public BsonDocument GetFiletrs()
         {
             BsonDocument filter = new BsonDocument(true);
 
             if (date_from_flag)
-                filter.Add(DataDb.GetTimeSeriesField(), new BsonDocument("$gte", date_From));
+                filter.Add(DataDb.GetTimeSeriesField(), new BsonDocument("$gte", date_From + time_From));
 
             if (date_to_flag)
-                filter.Add(DataDb.GetTimeSeriesField(), new BsonDocument("$lte", date_To.AddDays(1)));
+                filter.Add(DataDb.GetTimeSeriesField(), new BsonDocument("$lte", date_To + time_To));
 
             if (humid_from_flag)//filtro $gte umidità
                 filter.Add(DataDb.metaFieldName + ".Ch1_Value", new BsonDocument("$gte", humid_From));

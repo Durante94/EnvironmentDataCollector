@@ -30,8 +30,8 @@ namespace WebEnvironmentDataCollector.Controllers
             this.fileHandler = fileHandler;
             fileFolderRoot = config["UploadPath"];
 
-            if (!Directory.Exists(fileFolderRoot))
-                Directory.CreateDirectory(fileFolderRoot);
+            //if (!Directory.Exists(fileFolderRoot))
+            //    Directory.CreateDirectory(fileFolderRoot);
         }
 
         [HttpGet]

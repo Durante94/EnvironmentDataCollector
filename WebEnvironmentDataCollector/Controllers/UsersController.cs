@@ -37,21 +37,17 @@ namespace WebEnvironmentDataCollector.Controllers
         {
             AppUser user = userManager.FindByIdAsync(userId).Result;
 
-            if (user == null) return Ok();
+            if (user == null) return Ok(null);
 
             DateTime? da = null, a = null;
             CultureInfo cu = CultureInfo.GetCultureInfo("it-IT");
 
-            if (DateTime.TryParseExact(from, "dd/MM/yyyy HH:mm:ss", cu, DateTimeStyles.None, out DateTime tmp))
+            if (DateTime.TryParseExact(from, new string[] { "yyyy-MM-dd HH:mm", "yyyy-MM-dd" }, cu, DateTimeStyles.None, out DateTime tmp))
                 da = new DateTime(tmp.Ticks);
-            if (DateTime.TryParseExact(to, "dd/MM/yyyy HH:mm:ss", cu, DateTimeStyles.None, out tmp))
+            if (DateTime.TryParseExact(to, new string[] { "yyyy-MM-dd HH:mm", "yyyy-MM-dd" }, cu, DateTimeStyles.None, out tmp))
                 a = new DateTime(tmp.Ticks);
 
-            return Content(
-                mongo.GetUsrLog(da, a, user.UserName),
-                "application/json",
-                System.Text.Encoding.UTF8
-            );
+            return Ok(mongo.GetUsrLog(da, a, user.UserName));
         }
 
         [HttpPost("Activate")]

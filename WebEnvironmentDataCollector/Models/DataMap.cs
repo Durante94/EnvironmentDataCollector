@@ -28,6 +28,9 @@ namespace WebEnvironmentDataCollector.Models
     //CLASSE PER PARSARE IL FILE EXCEL
     public class DataMap : BaseData
     {
+        [BsonIgnore]
+        private static readonly CultureInfo ci;
+
         private string ch2_Unit;
 
         [BsonIgnore]
@@ -78,6 +81,11 @@ namespace WebEnvironmentDataCollector.Models
             }
         }
 
+        static DataMap()
+        {
+            ci = CultureInfo.GetCultureInfo("it-IT");
+        }
+
         [JsonConstructor]
         private DataMap() : base()
         {
@@ -103,7 +111,7 @@ namespace WebEnvironmentDataCollector.Models
 
                 if (current.GetCustomAttribute<FloatAttribute>() != null)
                 {
-                    if (double.TryParse(value, out double num))
+                    if (double.TryParse(value, NumberStyles.Any, ci, out double num))
                         current.SetValue(rilevazione, num);
                     else
                         current.SetValue(rilevazione, -200d);
@@ -131,17 +139,13 @@ namespace WebEnvironmentDataCollector.Models
                 PropertyInfo current = rilevazione.GetType().GetProperty(header[i], BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
                 if (string.IsNullOrEmpty(csvRow[i]) || string.IsNullOrWhiteSpace(csvRow[i]))
-                {
-                    i--;
                     continue;
-                }
-                else
-                    csvRow[i] = csvRow[i].Trim();
+
                 if (current == null) continue;
 
                 if (current.GetCustomAttribute<FloatAttribute>() != null)
                 {
-                    if (double.TryParse(csvRow[i], out double num))
+                    if (double.TryParse(csvRow[i], NumberStyles.Any, ci, out double num))
                         current.SetValue(rilevazione, num);
                     else
                         current.SetValue(rilevazione, -200d);
@@ -154,7 +158,7 @@ namespace WebEnvironmentDataCollector.Models
                         current.SetValue(rilevazione, 0);
                 }
                 else
-                    current.SetValue(rilevazione, csvRow[i]);
+                    current.SetValue(rilevazione, csvRow[i].Trim());
             }
 
             return rilevazione;

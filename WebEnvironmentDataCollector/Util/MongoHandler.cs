@@ -62,28 +62,27 @@ namespace WebEnvironmentDataCollector.Util
         internal List<DataDb> GetData(BsonDocument filter, string userDb)
         {
             IMongoDatabase db = GetDb(userDb);
-            db.GetCollection<BsonDocument>(logCollName).InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", "Ricerca" }, { "documento", filter.ToJson(JWS) } });
+            db.GetCollection<Log>(logCollName).InsertOne(new Log("Ricerca", filter.ToString()));
             return db.GetCollection<DataDb>(collName).Find(filter).Sort(Builders<DataDb>.Sort.Ascending(x => x.DataRilevazione)).ToList();
         }
 
         internal void LogOperation(string operation, string serializedObj, string userDb)
         {
-            GetDb(userDb).GetCollection<BsonDocument>(logCollName).InsertOne(new BsonDocument { { "timestamp", DateTime.Now }, { "operazione", operation }, { "documento", serializedObj } });
+            GetDb(userDb).GetCollection<Log>(logCollName).InsertOne(new Log(operation, serializedObj));
         }
 
-        internal string GetUsrLog(DateTime? from, DateTime? to, string userDb)
+        internal List<Log> GetUsrLog(DateTime? from, DateTime? to, string userDb)
         {
-            FilterDefinition<BsonDocument> filter = Builders<BsonDocument>.Filter.Empty;
+            FilterDefinition<Log> filter = Builders<Log>.Filter.Empty;
 
             if (from.HasValue)
-                filter &= Builders<BsonDocument>.Filter.Gte("timestamp", from.Value);
+                filter &= Builders<Log>.Filter.Gte("timestamp", from.Value);
             if (to.HasValue)
-                filter &= Builders<BsonDocument>.Filter.Lte("timestamp", to.Value);
+                filter &= Builders<Log>.Filter.Lte("timestamp", to.Value);
 
-            return GetDb(userDb).GetCollection<BsonDocument>(logCollName).Find(filter)
-                .Sort(Builders<BsonDocument>.Sort.Descending("timestamp"))
-                .Project(Builders<BsonDocument>.Projection.Exclude("_id"))
-                .ToList().ToJson(JWS);
+            return GetDb(userDb).GetCollection<Log>(logCollName).Find(filter)
+                .Sort(Builders<Log>.Sort.Descending("timestamp"))
+                .ToList();
         }
     }
 }

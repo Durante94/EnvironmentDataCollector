@@ -17,7 +17,7 @@
 </div>
 
 <div id="usr-detail" class="modal fade" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Dettaglio <span>Inserisci il nome utente da html</span></h5>
@@ -26,11 +26,33 @@
                 </button>
             </div>
             <div class="modal-body">
-
+                <div id="log-filter" class="mb-2 d-flex">
+                    <div class="w-50 pl-1 pr-1">
+                        Da:
+                        <input type="date" />
+                        <input type="time" />
+                    </div>
+                    <div class="w-50 pl-1 pr-1">
+                        A:
+                        <input type="date" />
+                        <input type="time" />
+                    </div>
+                    <button class="btn btn-info" onclick="getLog(this.dataset.usrId)">Aggiorna</button>
+                </div>
+                <table class="table table-responsive-md">
+                    <thead>
+                        <tr>
+                            <th>Giorno e Ora</th>
+                            <th>Operazione</th>
+                            <th>Dettagli</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary">Save changes</button>
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Salva</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Chiudi</button>
             </div>
         </div>
     </div>
@@ -39,6 +61,14 @@
 @section Scripts {
     <script>
         const apiUrl = '@Url.Content("~")/Users',
+            localeOpt = {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric'
+            },
             togLock = input => {
                 if (!input.dataset.lock) {
                     fetch(apiUrl + '/Unlock', {
@@ -95,8 +125,25 @@
                 } else
                     input.removeAttribute('checked');
             },
-            getLog = (userId, from, to) => {
-                fetch(apiUrl + `/Log?userId=${userId}from=${from}to=${to}`)
+            getLog = (userId) => {
+                let from = '', to = '';
+                const fromDate = document.getElementById('log-filter').children.item(0).children.item(0).value,
+                    fromTime = document.getElementById('log-filter').children.item(0).children.item(1).value,
+                    toDate = document.getElementById('log-filter').children.item(1).children.item(0).value,
+                    toTime = document.getElementById('log-filter').children.item(1).children.item(1).value;
+
+                if (fromDate) {
+                    from = fromDate;
+                    if (fromTime)
+                        from += ' ' + fromTime;
+                }
+                if (toDate) {
+                    to = toDate;
+                    if (toTime)
+                        to += ' ' +toTime;
+                }
+
+                fetch(apiUrl + `/Log?userId=${userId}&from=${from}&to=${to}`)
                     .then(resp => {
                         if (resp.ok)
                             return resp.json();
@@ -108,24 +155,37 @@
 
                         for (let i = 0; i < json.length; i++) {
                             html += `<tr>
-                                        <td>${json[i].timestamp}</td>
+                                        <td>${new Date(json[i].timestamp).toLocaleString(localeOpt)}</td>
                                         <td>${json[i].operazione}</td>
                                         <td>${json[i].documento}</td>
                                     </tr>`;
                         }
 
-                          //incollalo dentro alla modale
+                        document.getElementById('usr-detail').getElementsByTagName('tbody').item(0).innerHTML = html;
                     })
                     .catch(json => {
                         alert("Errore, controlla console");
                         console.error(json);
                     });
-            };
+            }, compileModal = svg => {
+                //INIZIALIZZO GLI INPUT DELLA MODALE
+                const today = new Date(),
+                    year = today.getFullYear();
+                let month = today.getMonth() + 1,
+                    day = today.getDate();
 
-        $('#usr-detail').on('show.bs.modal', e => {
-            console.log('gesù');
-            console.log(e.target, e.currentTarget);
-        })
+                if (month < 10)
+                    month = '0' + month;
+                if (day < 10)
+                    day = '0' + day;
+
+                document.getElementById('log-filter').children.item(0).children.item(0).value = `${year}-${month}-${day}`;
+                document.getElementById('log-filter').getElementsByTagName('button').item(0).dataset.usrId = svg.dataset.usrId;
+
+                getLog(svg.dataset.usrId);
+
+                document.getElementById('usr-detail').getElementsByTagName('h5').item(0).children.item(0).textContent = svg.dataset.usrName;
+            };
 
         fetch(apiUrl)
             .then(resp => {
@@ -156,8 +216,8 @@
                                 </div>
                                 <div class="col-2 d-sm-none d-md-block">${json[i].motivo || ''}</div>
                                 <div class="col-1 d-sm-none d-md-block text-center">
-                                    <svg data-toggle="modal" data-target="#usr-detail" data-usr-id="${json[i].id}" data-usr-name="${json[i].userName}" data-usr-email="${json[i].email}" data-usr-locked=${json[i].locked}
-                                        data-usr-active=${json[i].active} data-usr-motivo=${json[i].motivo || ''}
+                                    <svg data-toggle="modal" data-target="#usr-detail" onclick="compileModal(this)" data-usr-id="${json[i].id}" data-usr-name="${json[i].userName}" data-usr-email="${json[i].email}" data-usr-locked=${json[i].locked}
+                                        data-usr-active=${json[i].active} data-usr-motivo="${(json[i].motivo || '')}"
                                         width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up-right" viewBox="0 0 16 16">
                                         <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
                                         <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
