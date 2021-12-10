@@ -13,10 +13,10 @@ namespace WebEnvironmentDataCollector.Models
 {
     public class BaseData
     {
-        [Integer]
+        [Integer, JsonIgnore]
         public long Position { get; protected set; }
 
-        [BsonTSField, BsonDateTimeOptions(Kind = DateTimeKind.Local)]
+        [BsonTSField, BsonDateTimeOptions(Kind = DateTimeKind.Unspecified)]
         public DateTime DataRilevazione { get; protected set; }
 
         protected BaseData()

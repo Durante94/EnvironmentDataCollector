@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
+using MongoDB.Bson.IO;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -19,11 +21,13 @@ namespace WebEnvironmentDataCollector.Controllers
     {
         private readonly UserManager<AppUser> userManager;
         private readonly MongoHandler mongo;
+        private readonly IEmailService emailSender;
 
-        public UsersController(UserManager<AppUser> userManager, MongoHandler mongo)
+        public UsersController(UserManager<AppUser> userManager, MongoHandler mongo, IEmailService emailService)
         {
             this.userManager = userManager;
             this.mongo = mongo;
+            emailSender = emailService;
         }
 
         [HttpGet]
@@ -66,11 +70,13 @@ namespace WebEnvironmentDataCollector.Controllers
             usr.Active = !usr.Active;
             usr.Motivo = motivo;
 
+            mongo.LogOperation($"{(usr.Active ? "Attivazione" : "Disattivazione")} utente", Newtonsoft.Json.JsonConvert.SerializeObject(usr), User.Identity.Name);
+
             return Ok(userManager.UpdateAsync(usr).Result.Succeeded);
         }
 
         [HttpPost("Unlock")]
-        public IActionResult Post([FromBody] JObject id)
+        public IActionResult Unlock([FromBody] JObject id)
         {
             string usrId;
             if (id.ContainsKey("id"))
@@ -82,7 +88,61 @@ namespace WebEnvironmentDataCollector.Controllers
 
             if (usr == null) return Ok(false);
 
+            mongo.LogOperation("Sbloccato utente", Newtonsoft.Json.JsonConvert.SerializeObject(usr), User.Identity.Name);
+
             return Ok(userManager.SetLockoutEndDateAsync(usr, DateTimeOffset.Now.AddDays(-1)).Result.Succeeded);
+        }
+
+        [HttpPost("Reset")]
+        public IActionResult Reset([FromBody] JObject id)
+        {
+            string usrId;
+            if (id.ContainsKey("id"))
+                usrId = id.GetValue("id").ToString();
+            else
+                return Ok(false);
+
+            AppUser usr = userManager.FindByIdAsync(usrId).Result;
+
+            if (usr == null) return Ok(false);
+
+            string code = userManager.GeneratePasswordResetTokenAsync(usr).Result;
+            code = WebEncoders.Base64UrlEncode(System.Text.Encoding.UTF8.GetBytes(code));
+            string callbackUrl = Url.Page(
+                "/Account/ResetPassword",
+                pageHandler: null,
+                values: new { area = "Identity", code },
+                protocol: Request.Scheme);
+
+            emailSender.Send(
+                usr.Email,
+                "Reset Password",
+                $"Please reset your password by <a href='{System.Text.Encodings.Web.HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+
+            mongo.LogOperation("Reset password utente", Newtonsoft.Json.JsonConvert.SerializeObject(usr), User.Identity.Name);
+
+            return Ok(true);
+        }
+
+        [HttpDelete]
+        public IActionResult Delete([FromBody] JObject id)
+        {
+            string usrId;
+            if (id.ContainsKey("id"))
+                usrId = id.GetValue("id").ToString();
+            else
+                return Ok(false);
+
+            AppUser usr = userManager.FindByIdAsync(usrId).Result;
+
+            if (usr == null) return Ok(false);
+
+            if (userManager.GetUsersInRoleAsync("WebAdmin").Result.Contains(usr))
+                return Ok(false);
+
+            mongo.LogOperation("Cancellato utente", Newtonsoft.Json.JsonConvert.SerializeObject(usr), User.Identity.Name);
+
+            return Ok(userManager.DeleteAsync(usr).Result.Succeeded);
         }
     }
 }

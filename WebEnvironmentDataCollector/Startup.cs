@@ -181,10 +181,21 @@ namespace WebEnvironmentDataCollector
             {
                 AppUser user = new AppUser("TestUsr")
                 {
-                    Email = "test.env.coll@mailnesia.it"
+                    Email = "test.env.coll@mailnesia.com"
                 };
 
-                userManager.CreateAsync(user, "").Wait();
+                userManager.CreateAsync(user, "TestEnv1!").Wait();
+            }
+            
+            userSearch = userManager.FindByNameAsync("AvisAlassio");
+            if (userSearch.Result == null)
+            {
+                AppUser user = new AppUser("AvisAlassio")
+                {
+                    Email = "avis.alassio@avis.it"
+                };
+
+                userManager.CreateAsync(user, "Alassio@2021").Wait();
             }
         }
     }

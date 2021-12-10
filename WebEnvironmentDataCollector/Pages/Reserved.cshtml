@@ -26,6 +26,12 @@
                 </button>
             </div>
             <div class="modal-body">
+                <div class="mb-2 border-bottom border-dark d-flex pb-2 justify-content-around">
+                    <button class="btn btn-secondary" onclick="resetPwd(this)">Reset password</button>
+                    <button class="btn btn-primary" onclick="toggleLock(this)">Sblocca accesso</button>
+                    <button class="btn btn-dark" onclick="toggleActive(this)"><span class="text-capitalize"></span> utente</button>
+                    <button class="btn btn-danger" onclick="deleteUsr(this)">Cancella utente</button>
+                </div>
                 <div id="log-filter" class="mb-2 d-flex">
                     <div class="w-50 pl-1 pr-1">
                         Da:
@@ -69,61 +75,93 @@
                 minute: 'numeric',
                 second: 'numeric'
             },
-            togLock = input => {
-                if (!input.dataset.lock) {
-                    fetch(apiUrl + '/Unlock', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ id: `${input.id.substring(6)}` })
-                    }).then(resp => {
-                        if (resp.ok)
-                            return resp.json();
-                        else
-                            throw resp.json();
-                    }).then(json => {
-                        if (json)
-                            input.dataset.lock = true;
-                        else {
-                            input.removeAttribute('checked');
-                            alert("Impossibile sbloccare l'utente");
-                        }
-                    }).catch(json => {
-                        input.removeAttribute('checked');
-                        console.error(json);
-                        alert("Errore");
-                    });
-                } else
-                    input.removeAttribute('checked');
+            toggleLock = btn => {
+                btn.innerHTML = btn.innerHTML + '<span class="spinner-border spinner-border-sm ml-1"></span>';
+                fetch(apiUrl + '/Unlock', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id: `${btn.dataset.usrId}` })
+                }).then(resp => {
+                    if (resp.ok)
+                        return resp.json();
+                    else
+                        throw resp.json();
+                }).then(json => {
+                    if (!json)
+                        alert("Impossibile sbloccare l'utente");
+                }).catch(json => {
+                    console.error(json);
+                    alert("Errore");
+                }).then(() => btn.lastChild.remove());
             },
-            togActive = input => {
-                if (input.dataset.active) {
-                    fetch(apiUrl + '/Activate', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ id: `${input.id.substring(6)}`, motivo: '' })
-                    }).then(resp => {
-                        if (resp.ok)
-                            return resp.json();
-                        else
-                            throw resp.json();
-                    }).then(json => {
-                        if (json)
-                            input.dataset.active = false;
-                        else {
-                            input.removeAttribute('checked');
-                            alert("Impossibile bloccare l'utente");
-                        }
-                    }).catch(json => {
-                        input.removeAttribute('checked');
-                        console.error(json);
-                        alert("Errore");
-                    });
-                } else
-                    input.removeAttribute('checked');
+            toggleActive = btn => {
+                btn.innerHTML = btn.innerHTML + '<span class="spinner-border spinner-border-sm ml-1"></span>';
+                fetch(apiUrl + '/Activate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id: `${btn.dataset.usrId}`, motivo: '' })
+                }).then(resp => {
+                    if (resp.ok)
+                        return resp.json();
+                    else
+                        throw resp.json();
+                }).then(json => {
+                    if (json) {
+                        btn.dataset.flag = btn.dataset.flag === 'true' ? 'false' : 'true';
+                        btn.firstChild.textContent = btn.dataset.flag === 'true' ? 'disattiva' : 'attiva';
+                    }
+                    else
+                        alert("Impossibile bloccare l'utente");
+                }).catch(json => {
+                    console.error(json);
+                    alert("Errore");
+                }).then(() => btn.lastChild.remove());
+            },
+            resetPwd = btn => {
+                btn.innerHTML = btn.innerHTML + '<span class="spinner-border spinner-border-sm ml-1"></span>';
+                fetch(apiUrl + '/Reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id: `${btn.dataset.usrId}`})
+                }).then(resp => {
+                    if (resp.ok)
+                        return resp.json();
+                    else
+                        throw resp.json();
+                }).then(json => {
+                    if (!json)
+                        alert("Utente non trovato");
+                }).catch(json => {
+                    console.error(json);
+                    alert("Errore");
+                }).then(() => btn.lastChild.remove());
+            },
+            deleteUsr = btn => {
+                btn.innerHTML = btn.innerHTML + '<span class="spinner-border spinner-border-sm ml-1"></span>';
+                fetch(apiUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id: `${btn.dataset.usrId}` })
+                }).then(resp => {
+                    if (resp.ok)
+                        return resp.json();
+                    else
+                        throw resp.json();
+                }).then(json => {
+                    if (!json)
+                        alert("Impossibile cancellare l'utente");
+                }).catch(json => {
+                    console.error(json);
+                    alert("Errore");
+                }).then(() => btn.lastChild.remove());
             },
             getLog = (userId) => {
                 let from = '', to = '';
@@ -180,7 +218,19 @@
                     day = '0' + day;
 
                 document.getElementById('log-filter').children.item(0).children.item(0).value = `${year}-${month}-${day}`;
-                document.getElementById('log-filter').getElementsByTagName('button').item(0).dataset.usrId = svg.dataset.usrId;
+                const buttons = document.getElementById('usr-detail').getElementsByTagName('button');
+                for (let i = 0; i < buttons.length; i++) {
+                    buttons.item(i).dataset.usrId = svg.dataset.usrId;
+                    if (i == 2) {
+                        if (svg.dataset.usrLocked === 'true')
+                            buttons.item(i).classList.remove('d-none');
+                        else
+                            buttons.item(i).classList.add('d-none');
+                    } else if (i === 3) {
+                        buttons.item(i).firstChild.textContent = svg.dataset.usrActive === 'true' ? 'disattiva' : 'attiva';
+                        buttons.item(i).dataset.flag = svg.dataset.usrActive;
+                    }
+                }
 
                 getLog(svg.dataset.usrId);
 
@@ -204,20 +254,20 @@
                                 <div class="col-sm-5 col-md-4 col-lg-3">${json[i].email}</div>
                                 <div class="col-1">
                                     <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="loked-${json[i].id}"${(json[i].locked ? ' checked' : '')} data-lock=${json[i].locked} onchange="togLock(this)" />
+                                        <input type="checkbox" class="custom-control-input" id="loked-${json[i].id}"${(json[i].locked ? ' checked' : '')} disabled />
                                         <label class="custom-control-label" for="loked-${json[i].id}"></label>
                                     </div>
                                 </div>
                                 <div class="col-1">
                                     <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="active-${json[i].id}"${(json[i].active ? ' checked' : '')} />
+                                        <input type="checkbox" class="custom-control-input" id="active-${json[i].id}"${(json[i].active ? ' checked' : '')} disabled />
                                         <label class="custom-control-label" for="active-${json[i].id}"></label>
                                     </div>
                                 </div>
                                 <div class="col-2 d-sm-none d-md-block">${json[i].motivo || ''}</div>
                                 <div class="col-1 d-sm-none d-md-block text-center">
-                                    <svg data-toggle="modal" data-target="#usr-detail" onclick="compileModal(this)" data-usr-id="${json[i].id}" data-usr-name="${json[i].userName}" data-usr-email="${json[i].email}" data-usr-locked=${json[i].locked}
-                                        data-usr-active=${json[i].active} data-usr-motivo="${(json[i].motivo || '')}"
+                                    <svg data-toggle="modal" data-target="#usr-detail" onclick="compileModal(this)" data-usr-id="${json[i].id}" data-usr-name="${json[i].userName}" data-usr-email="${json[i].email}"
+                                        data-usr-locked=${json[i].locked} data-usr-active=${json[i].active} data-usr-motivo="${(json[i].motivo || '')}"
                                         width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up-right" viewBox="0 0 16 16">
                                         <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
                                         <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
